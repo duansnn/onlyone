@@ -3,6 +3,7 @@ package com.owner.system.kanban.controller;
 import com.owner.common.core.domain.R;
 import com.owner.system.kanban.domain.dto.ProjectSaveDTO;
 import com.owner.system.kanban.domain.vo.ProjectVO;
+import com.owner.system.kanban.service.KanbanSeedService;
 import com.owner.system.kanban.service.ProjectService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -30,6 +31,13 @@ import java.util.List;
 public class ProjectController {
 
     private final ProjectService projectService;
+    private final KanbanSeedService kanbanSeedService;
+
+    @Operation(summary = "一键加载演示数据", description = "为当前用户预置 2 个演示项目与 14 条任务；已有项目时拒绝执行")
+    @PostMapping("/seed")
+    public R<Long> seed() {
+        return R.ok(kanbanSeedService.seed());
+    }
 
     @Operation(summary = "获取当前用户全部项目", description = "附各项目任务数")
     @GetMapping("/list")

@@ -1,9 +1,14 @@
 import { get, post } from '@/api/request';
-import type { PortalInfo } from '@/types/api';
+import type { PortalInfo, PortalOverview } from '@/types/api';
 
 /** 应用信息与运行状态 */
 export function fetchPortalInfo(): Promise<PortalInfo> {
   return get<PortalInfo>('/portal/info');
+}
+
+/** 仪表盘总览：门户与看板核心指标 + 近 N 天任务趋势 */
+export function fetchPortalOverview(trendDays = 14): Promise<PortalOverview> {
+  return get<PortalOverview>('/portal/overview', { trendDays });
 }
 
 /** 广播 WebSocket 消息（按 owner.websocket.send-mode 配置的方式发送） */

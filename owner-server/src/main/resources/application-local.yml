@@ -10,8 +10,8 @@ spring:
         master:
           url: jdbc:mysql://localhost:3306/owner?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&rewriteBatchedStatements=true
           username: ${MYSQL_USERNAME:root}
-          # 本地开发口令不写死在仓库里，请通过 .env 或环境变量 MYSQL_PASSWORD 提供
-          password: ${MYSQL_PASSWORD:change-me}
+          # 本地开发口令（本机 MySQL root 密码），如需覆盖请设置环境变量 MYSQL_PASSWORD
+          password: ${MYSQL_PASSWORD:9999}
   data:
     redis:
       host: localhost

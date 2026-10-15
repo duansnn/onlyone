@@ -89,6 +89,36 @@ export interface SysUserUpdatePayload {
   version?: number;
 }
 
+/** 看板注册用户统计出参：KanbanUserStatVO */
+export interface KanbanUserStat {
+  /** 看板用户 ID（自增，Long->String 序列化） */
+  id: string;
+  username: string;
+  projectCount: number;
+  taskCount: number;
+  createTime?: string;
+}
+
+/** 仪表盘总览出参：PortalOverviewVO */
+export interface PortalOverview {
+  portalUserCount: number;
+  kanbanUserCount: number;
+  projectCount: number;
+  taskCount: number;
+  todoCount: number;
+  doingCount: number;
+  doneCount: number;
+  overdueCount: number;
+  trend: PortalTrendPoint[];
+}
+
+/** 趋势点 */
+export interface PortalTrendPoint {
+  date: string;
+  newCount: number;
+  doneCount: number;
+}
+
 /** 运行状态：GET /api/portal/info */
 export interface PortalInfo {
   applicationName: string;

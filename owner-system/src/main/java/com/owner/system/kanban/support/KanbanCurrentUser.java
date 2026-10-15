@@ -32,6 +32,15 @@ public final class KanbanCurrentUser {
         return USERNAME.get();
     }
 
+    /** 获取当前用户名；未登录时抛 401。 */
+    public static String getRequiredUsername() {
+        String username = USERNAME.get();
+        if (username == null) {
+            throw new ServiceException(ResultCode.UNAUTHORIZED, "未登录或登录已过期");
+        }
+        return username;
+    }
+
     public static void clear() {
         USER_ID.remove();
         USERNAME.remove();

@@ -93,6 +93,37 @@ public class JwtTokenService {
         return node.path("userId").asLong();
     }
 
+    /** 校验并解析令牌，返回 username（签名不符或过期返回 null）。 */
+    public String parseUsername(String token) {
+        if (token == null || token.isBlank()) {
+            return null;
+        }
+        String[] parts = token.split("\\.");
+        if (parts.length != 3) {
+            return null;
+        }
+        String expected = sign(parts[0] + "." + parts[1]);
+        if (!MessageDigest.isEqual(expected.getBytes(StandardCharsets.UTF_8), parts[2].getBytes(StandardCharsets.UTF_8))) {
+            return null;
+        }
+        String json;
+        try {
+            json = new String(Base64.getUrlDecoder().decode(parts[1]), StandardCharsets.UTF_8);
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
+        var node = JsonUtils.readTree(json);
+        if (node == null || node.path("exp").isMissingNode()) {
+            return null;
+        }
+        long exp = node.path("exp").asLong(0);
+        if (exp > 0 && Instant.now().getEpochSecond() >= exp) {
+            return null;
+        }
+        String username = node.path("username").asText(null);
+        return username == null || username.isBlank() ? null : username;
+    }
+
     private String sign(String data) {
         try {
             Mac mac = Mac.getInstance(HMAC_SHA256);

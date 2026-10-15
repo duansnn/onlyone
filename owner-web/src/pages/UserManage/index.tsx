@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
+  Alert,
+  App as AntdApp,
   Button,
   Card,
   Descriptions,
@@ -11,6 +13,7 @@ import {
   Space,
   Spin,
   Table,
+  Tabs,
   Tag,
   Tooltip,
   Typography,
@@ -24,16 +27,21 @@ import {
   ReloadOutlined,
   SearchOutlined,
   SoundOutlined,
+  TeamOutlined,
 } from '@ant-design/icons';
 import {
+  createKanbanUser,
   createUser,
   getUserById,
+  listKanbanUsers,
   pageUsers,
   pushWelcome,
+  removeKanbanUser,
   removeUser,
+  resetKanbanPassword,
   updateUser,
 } from '@/api/user';
-import type { PageResult, SysUser, SysUserQuery } from '@/types/api';
+import type { KanbanUserStat, PageResult, SysUser, SysUserQuery } from '@/types/api';
 import { toast } from '@/utils/feedback';
 
 const { Text } = Typography;
@@ -56,6 +64,7 @@ interface UserFormValues {
 }
 
 export default function UserManage() {
+  const { modal } = AntdApp.useApp();
   const [searchForm] = Form.useForm<Partial<SysUserQuery>>();
   const [editForm] = Form.useForm<UserFormValues>();
 
@@ -71,6 +80,86 @@ export default function UserManage() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [detail, setDetail] = useState<SysUser | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+
+  // 看板注册用户（只读展示）
+  const [kanbanUsers, setKanbanUsers] = useState<KanbanUserStat[]>([]);
+  const [kanbanLoading, setKanbanLoading] = useState(false);
+
+  const loadKanbanUsers = useCallback(async () => {
+    setKanbanLoading(true);
+    try {
+      setKanbanUsers(await listKanbanUsers());
+    } catch {
+      // 拦截器已提示
+    } finally {
+      setKanbanLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadKanbanUsers();
+  }, [loadKanbanUsers]);
+
+  // —— 看板用户管理：新增 / 重置密码 / 删除 ——
+  const [kbEditorOpen, setKbEditorOpen] = useState(false);
+  const [kbEditorForm] = Form.useForm<{ username: string; password: string }>();
+  const [kbEditorSaving, setKbEditorSaving] = useState(false);
+
+  const [kbPwdOpen, setKbPwdOpen] = useState(false);
+  const [kbPwdForm] = Form.useForm<{ password: string }>();
+  const [kbPwdTarget, setKbPwdTarget] = useState<KanbanUserStat | null>(null);
+  const [kbPwdSaving, setKbPwdSaving] = useState(false);
+
+  const handleKbCreate = async () => {
+    const values = await kbEditorForm.validateFields();
+    setKbEditorSaving(true);
+    try {
+      await createKanbanUser(values.username.trim(), values.password);
+      toast.success(`看板用户「${values.username}」已创建`);
+      setKbEditorOpen(false);
+      kbEditorForm.resetFields();
+      await loadKanbanUsers();
+    } catch {
+      // 拦截器已提示
+    } finally {
+      setKbEditorSaving(false);
+    }
+  };
+
+  const handleKbResetPwd = async () => {
+    if (!kbPwdTarget) return;
+    const values = await kbPwdForm.validateFields();
+    setKbPwdSaving(true);
+    try {
+      await resetKanbanPassword(kbPwdTarget.id, values.password);
+      toast.success(`已重置「${kbPwdTarget.username}」的密码`);
+      setKbPwdOpen(false);
+      kbPwdForm.resetFields();
+    } catch {
+      // 拦截器已提示
+    } finally {
+      setKbPwdSaving(false);
+    }
+  };
+
+  const handleKbDelete = (record: KanbanUserStat) => {
+    modal.confirm({
+      title: `删除看板用户「${record.username}」？`,
+      content: `将级联删除其 ${record.projectCount} 个项目、${record.taskCount} 条任务及全部评论，不可恢复。`,
+      okText: '删除',
+      okButtonProps: { danger: true },
+      cancelText: '取消',
+      onOk: async () => {
+        try {
+          await removeKanbanUser(record.id);
+          toast.success('看板用户已删除');
+          await loadKanbanUsers();
+        } catch {
+          // 拦截器已提示
+        }
+      },
+    });
+  };
 
   const load = useCallback(async (current: SysUserQuery) => {
     setLoading(true);
@@ -257,10 +346,56 @@ export default function UserManage() {
     },
   ];
 
+  const kanbanColumns: TableProps<KanbanUserStat>['columns'] = [
+    { title: 'ID', dataIndex: 'id', width: 90 },
+    { title: '用户名', dataIndex: 'username', width: 160 },
+    { title: '项目数', dataIndex: 'projectCount', width: 100, render: (v: number) => <Tag color="orange">{v}</Tag> },
+    { title: '任务数', dataIndex: 'taskCount', width: 100, render: (v: number) => <Tag color="geekblue">{v}</Tag> },
+    { title: '注册时间', dataIndex: 'createTime', width: 200, render: (v?: string) => v ?? '-' },
+    {
+      title: '操作',
+      key: 'action',
+      width: 180,
+      render: (_, record) => (
+        <Space size={4} wrap>
+          <Button
+            type="link"
+            size="small"
+            onClick={() => {
+              setKbPwdTarget(record);
+              setKbPwdOpen(true);
+            }}
+          >
+            重置密码
+          </Button>
+          <Popconfirm
+            title={`删除看板用户「${record.username}」？`}
+            description="级联删除其项目/任务/评论，不可恢复"
+            okText="删除"
+            cancelText="取消"
+            okButtonProps={{ danger: true }}
+            onConfirm={() => handleKbDelete(record)}
+          >
+            <Button type="link" size="small" danger>
+              删除
+            </Button>
+          </Popconfirm>
+        </Space>
+      ),
+    },
+  ];
+
   return (
-    <Space direction="vertical" size={16} style={{ width: '100%' }}>
-      <Card>
-        <Form form={searchForm} layout="inline" style={{ rowGap: 12 }} onFinish={handleSearch}>
+    <Tabs
+      defaultActiveKey="portal"
+      items={[
+        {
+          key: 'portal',
+          label: '门户用户',
+          children: (
+            <Space direction="vertical" size={16} style={{ width: '100%' }}>
+              <Card>
+                <Form form={searchForm} layout="inline" style={{ rowGap: 12 }} onFinish={handleSearch}>
           <Form.Item name="username" label="登录账号">
             <Input allowClear placeholder="支持模糊匹配" style={{ width: 160 }} />
           </Form.Item>
@@ -403,6 +538,125 @@ export default function UserManage() {
           该接口在后端标注了 <Text code>@Cacheable(cacheNames = &quot;sysUser&quot;)</Text>，第二次请求将直接命中 Redis。
         </Text>
       </Modal>
-    </Space>
+            </Space>
+          ),
+        },
+        {
+          key: 'kanban',
+          label: (
+            <Space size={6}>
+              <TeamOutlined />
+              <span>看板用户</span>
+            </Space>
+          ),
+          children: (
+            <Card
+              title={
+                <Space>
+                  <span>看板注册用户</span>
+                  <Tag className="owner-chip">共 {kanbanUsers.length} 条</Tag>
+                </Space>
+              }
+              extra={
+                <Space>
+                  <Button
+                    type="primary"
+                    icon={<PlusOutlined />}
+                    onClick={() => {
+                      kbEditorForm.resetFields();
+                      setKbEditorOpen(true);
+                    }}
+                  >
+                    新增看板用户
+                  </Button>
+                  <Button icon={<ReloadOutlined />} onClick={() => void loadKanbanUsers()}>
+                    刷新
+                  </Button>
+                </Space>
+              }
+            >
+              <Alert
+                type="info"
+                showIcon
+                style={{ marginBottom: 16 }}
+                message="看板用户来自独立的看板注册体系（user 表）"
+                description="支持新增账号、重置密码与删除（级联清理项目/任务/评论）。看板用户也可在「AI 任务看板」自行注册。"
+              />
+              <Table<KanbanUserStat>
+                rowKey="id"
+                size="middle"
+                loading={kanbanLoading}
+                columns={kanbanColumns}
+                dataSource={kanbanUsers}
+                pagination={false}
+                locale={{ emptyText: '暂无看板注册用户' }}
+              />
+
+              {/* 新增看板用户 */}
+              <Modal
+                open={kbEditorOpen}
+                title="新增看板用户"
+                okText="创建"
+                cancelText="取消"
+                confirmLoading={kbEditorSaving}
+                onOk={() => void handleKbCreate()}
+                onCancel={() => setKbEditorOpen(false)}
+                destroyOnClose
+                width={460}
+              >
+                <Form form={kbEditorForm} layout="vertical" style={{ marginTop: 16 }}>
+                  <Form.Item
+                    name="username"
+                    label="用户名"
+                    rules={[
+                      { required: true, message: '请输入用户名' },
+                      { min: 2, max: 50, message: '长度需在 2~50 之间' },
+                    ]}
+                  >
+                    <Input placeholder="看板登录用户名" />
+                  </Form.Item>
+                  <Form.Item
+                    name="password"
+                    label="初始密码"
+                    rules={[
+                      { required: true, message: '请输入初始密码' },
+                      { min: 6, max: 64, message: '长度需在 6~64 之间' },
+                    ]}
+                  >
+                    <Input.Password placeholder="至少 6 位" autoComplete="new-password" />
+                  </Form.Item>
+                </Form>
+              </Modal>
+
+              {/* 重置看板用户密码 */}
+              <Modal
+                open={kbPwdOpen}
+                title={`重置密码：${kbPwdTarget?.username ?? ''}`}
+                okText="重置"
+                cancelText="取消"
+                confirmLoading={kbPwdSaving}
+                onOk={() => void handleKbResetPwd()}
+                onCancel={() => setKbPwdOpen(false)}
+                destroyOnClose
+                width={420}
+              >
+                <Form form={kbPwdForm} layout="vertical" style={{ marginTop: 16 }}>
+                  <Form.Item
+                    name="password"
+                    label="新密码"
+                    rules={[
+                      { required: true, message: '请输入新密码' },
+                      { min: 6, max: 64, message: '长度需在 6~64 之间' },
+                    ]}
+                  >
+                    <Input.Password placeholder="至少 6 位" autoComplete="new-password" />
+                  </Form.Item>
+                </Form>
+              </Modal>
+            </Card>
+          ),
+        },
+      ]}
+    />
   );
 }

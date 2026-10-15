@@ -1,23 +1,30 @@
-import { useCallback, useEffect, useState } from 'react';
-import { Button, Input, Space, Switch, Tooltip, Typography } from 'antd';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Button, Input, Space, Spin, Switch, Tooltip, Typography } from 'antd';
 import { ReloadOutlined, ThunderboltOutlined } from '@ant-design/icons';
-import { broadcastMessage, fetchPortalInfo } from '@/api/portal';
-import type { PortalInfo } from '@/types/api';
+import * as echarts from 'echarts';
+import { broadcastMessage, fetchPortalInfo, fetchPortalOverview } from '@/api/portal';
+import type { PortalInfo, PortalOverview } from '@/types/api';
 import { toast } from '@/utils/feedback';
 
 const { Text, Paragraph } = Typography;
 
 export default function Dashboard() {
   const [info, setInfo] = useState<PortalInfo | null>(null);
+  const [overview, setOverview] = useState<PortalOverview | null>(null);
   const [loading, setLoading] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [broadcastText, setBroadcastText] = useState('这是一条来自 Owner IntelliPortal 前端的广播消息');
   const [sending, setSending] = useState(false);
 
+  const chartRef = useRef<HTMLDivElement>(null);
+  const chartInstanceRef = useRef<echarts.ECharts | null>(null);
+
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      setInfo(await fetchPortalInfo());
+      const [infoData, overviewData] = await Promise.all([fetchPortalInfo(), fetchPortalOverview(14)]);
+      setInfo(infoData);
+      setOverview(overviewData);
     } catch {
       // 拦截器已提示，这里保持上一次数据
     } finally {
@@ -34,6 +41,53 @@ export default function Dashboard() {
     const timer = window.setInterval(() => void load(true), 15000);
     return () => window.clearInterval(timer);
   }, [autoRefresh, load]);
+
+  // 渲染趋势折线图
+  useEffect(() => {
+    if (!overview?.trend?.length || !chartRef.current) return;
+    if (!chartInstanceRef.current) {
+      chartInstanceRef.current = echarts.init(chartRef.current);
+    }
+    const dates = overview.trend.map((p) => p.date.slice(5)); // MM-dd
+    chartInstanceRef.current.setOption({
+      tooltip: { trigger: 'axis' },
+      legend: { data: ['新增任务', '完成任务'], textStyle: { color: '#8a8178' } },
+      grid: { left: 36, right: 16, top: 36, bottom: 28 },
+      xAxis: { type: 'category', data: dates, boundaryGap: false },
+      yAxis: { type: 'value', minInterval: 1 },
+      series: [
+        {
+          name: '新增任务',
+          type: 'line',
+          smooth: true,
+          data: overview.trend.map((p) => p.newCount),
+          itemStyle: { color: '#ec6541' },
+          lineStyle: { width: 3 },
+          areaStyle: { opacity: 0.14 },
+        },
+        {
+          name: '完成任务',
+          type: 'line',
+          smooth: true,
+          data: overview.trend.map((p) => p.doneCount),
+          itemStyle: { color: '#3a6b8a' },
+          lineStyle: { width: 3 },
+          areaStyle: { opacity: 0.1 },
+        },
+      ],
+    });
+  }, [overview]);
+
+  // 随容器尺寸自适应
+  useEffect(() => {
+    const onResize = () => chartInstanceRef.current?.resize();
+    window.addEventListener('resize', onResize);
+    return () => {
+      window.removeEventListener('resize', onResize);
+      chartInstanceRef.current?.dispose();
+      chartInstanceRef.current = null;
+    };
+  }, []);
 
   const handleBroadcast = async () => {
     if (!broadcastText.trim()) {
@@ -66,6 +120,50 @@ export default function Dashboard() {
         </Button>
       </div>
 
+      {/* 看板真实数据 */}
+      <section className="owner-stat-grid">
+        <article className="owner-tile owner-tile--olive">
+          <span className="owner-tile__label">看板用户</span>
+          <strong className="owner-tile__value">{overview?.kanbanUserCount ?? 0}</strong>
+          <span className="owner-tile__note">看板注册</span>
+        </article>
+        <article className="owner-tile owner-tile--orange">
+          <span className="owner-tile__label">项目总数</span>
+          <strong className="owner-tile__value">{overview?.projectCount ?? 0}</strong>
+          <span className="owner-tile__note">全部用户</span>
+        </article>
+        <article className="owner-tile owner-tile--brown">
+          <span className="owner-tile__label">任务总数</span>
+          <strong className="owner-tile__value">{overview?.taskCount ?? 0}</strong>
+          <span className="owner-tile__note">
+            待办 {overview?.todoCount ?? 0} / 进行中 {overview?.doingCount ?? 0} / 完成 {overview?.doneCount ?? 0}
+          </span>
+        </article>
+        <article className="owner-tile owner-tile--slate">
+          <span className="owner-tile__label">逾期任务</span>
+          <strong className="owner-tile__value">{overview?.overdueCount ?? 0}</strong>
+          <span className="owner-tile__note">{(overview?.overdueCount ?? 0) > 0 ? '需要关注' : '一切正常'}</span>
+        </article>
+      </section>
+
+      {/* 趋势图 */}
+      <article className="owner-panel">
+        <div className="owner-panel__head">
+          <h2 className="owner-panel__title">任务趋势（近 14 天）</h2>
+          <span className="owner-panel__extra">全站看板数据</span>
+        </div>
+        {loading && !overview ? (
+          <div style={{ textAlign: 'center', padding: 32 }}>
+            <Spin />
+          </div>
+        ) : overview?.trend?.length ? (
+          <div ref={chartRef} style={{ width: '100%', height: 280 }} />
+        ) : (
+          <div className="owner-empty">暂无趋势数据</div>
+        )}
+      </article>
+
+      {/* 运行状态（原有能力） */}
       <section className="owner-stat-grid">
         <article className="owner-tile owner-tile--olive">
           <span className="owner-tile__label">在线连接</span>

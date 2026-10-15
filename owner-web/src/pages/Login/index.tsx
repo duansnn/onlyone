@@ -124,9 +124,14 @@ export default function Login() {
               </Space>
 
               <div style={{ marginTop: 16 }}>
-                <Button type="link" style={{ padding: 0 }} onClick={() => window.open('/doc.html', '_blank')}>
-                  查看 Knife4j 接口文档 →
-                </Button>
+                <Space size={16} wrap>
+                  <Button type="link" style={{ padding: 0 }} onClick={() => window.open('/doc.html', '_blank')}>
+                    查看 Knife4j 接口文档 →
+                  </Button>
+                  <Button type="link" style={{ padding: 0 }} onClick={() => navigate('/kanban/login')}>
+                    AI 任务看板入口 →
+                  </Button>
+                </Space>
               </div>
             </div>
           </Col>

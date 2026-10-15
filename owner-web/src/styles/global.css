@@ -641,6 +641,420 @@ textarea {
   border-radius: 16px;
 }
 
+/* ================= 看板模块（AI 轻量化任务看板） ================= */
+.kb-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: #d4cdc0;
+}
+
+.kb-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 60px;
+  padding: 0 24px;
+  background: #1c1c1e;
+  box-shadow: 0 8px 24px rgba(40, 36, 28, 0.14);
+}
+
+.kb-topbar__left {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+}
+
+.kb-logo {
+  font-size: 17px;
+  font-weight: 700;
+  color: #f4f4f5;
+  letter-spacing: 0.02em;
+}
+
+.kb-nav {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.kb-nav__item {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  height: 38px;
+  padding: 0 16px;
+  color: #d4d4d8;
+  cursor: pointer;
+  background: transparent;
+  border: 0;
+  border-radius: 12px;
+}
+
+.kb-nav__item:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.kb-nav__item.is-active {
+  color: #1c1c1e;
+  background: #e3c15a;
+  font-weight: 600;
+}
+
+.kb-user {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  height: 40px;
+  padding: 0 14px 0 6px;
+  color: #f4f4f5;
+  cursor: pointer;
+  border-radius: 999px;
+}
+
+.kb-user:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.kb-user__avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  font-size: 13px;
+  color: #1c1c1e;
+  background: #a3be72;
+  border-radius: 50%;
+}
+
+.kb-main {
+  flex: 1;
+  padding: 24px;
+}
+
+.kb-page {
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+.kb-page__head {
+  display: flex;
+  gap: 16px;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.kb-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 240px;
+}
+
+/* 登录页 */
+.kb-login {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 24px;
+  background: #d4cdc0;
+}
+
+.kb-login__card {
+  width: 100%;
+  max-width: 880px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 32px;
+  box-shadow: 0 24px 60px rgba(40, 36, 28, 0.12);
+}
+
+.kb-login__brand {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  justify-content: center;
+  height: 100%;
+  min-height: 460px;
+  padding: 48px 40px;
+  color: #f4f4f5;
+  background: #1c1c1e;
+}
+
+.kb-login__form {
+  padding: 48px 40px;
+  background: #fff;
+}
+
+/* 卡片通用 */
+.kb-card.ant-card {
+  border: 0;
+  border-radius: 24px;
+  box-shadow: 0 14px 36px rgba(40, 36, 28, 0.05);
+}
+
+/* 项目卡片 */
+.kb-project-card.ant-card {
+  border: 0;
+  border-radius: 24px;
+  box-shadow: 0 14px 36px rgba(40, 36, 28, 0.05);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.kb-project-card.ant-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 22px 48px rgba(40, 36, 28, 0.12);
+}
+
+.kb-project-card__body {
+  min-height: 150px;
+}
+
+.kb-project-card__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  font-size: 20px;
+  color: #1c1c1e;
+  background: #e3c15a;
+  border-radius: 14px;
+}
+
+/* 看板筛选栏 */
+.kb-filterbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+/* 三列看板 */
+.kb-columns {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+
+.kb-column {
+  display: flex;
+  flex-direction: column;
+  min-height: 400px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.55);
+  border-radius: 20px;
+  transition: background 0.15s ease;
+}
+
+.kb-column.is-drag-over {
+  background: rgba(227, 193, 90, 0.25);
+  outline: 2px dashed #c9962a;
+  outline-offset: -2px;
+}
+
+.kb-column__head {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 4px 8px 12px;
+}
+
+.kb-column__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.kb-column__count {
+  margin-left: auto;
+}
+
+.kb-column__body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+}
+
+.kb-column__empty {
+  padding: 28px 8px;
+  color: #3a3632;
+  text-align: center;
+  border: 1px dashed #d2c8b8;
+  border-radius: 16px;
+}
+
+.kb-task-wrap {
+  cursor: grab;
+}
+
+.kb-task-wrap.is-dragging {
+  opacity: 0.45;
+}
+
+/* 任务卡片 */
+.kb-task {
+  padding: 12px 14px;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 6px 18px rgba(40, 36, 28, 0.06);
+  transition: box-shadow 0.15s ease;
+}
+
+.kb-task:hover {
+  box-shadow: 0 12px 28px rgba(40, 36, 28, 0.12);
+}
+
+.kb-task.is-overdue {
+  border-left: 3px solid #c45c5c;
+}
+
+.kb-task__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.kb-task__more {
+  color: #4a453f;
+}
+
+.kb-task__title {
+  font-weight: 600;
+  color: #1c1c1e;
+}
+
+.kb-task__desc {
+  font-size: 13px;
+}
+
+.kb-task__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.kb-tag.ant-tag {
+  margin: 0;
+  color: #1c2a10;
+  background: #ebe4d6;
+  border-color: transparent;
+  border-radius: 999px;
+}
+
+.kb-task__foot {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.kb-task__due {
+  font-size: 12px;
+}
+
+.kb-task__due.is-overdue {
+  color: #c45c5c !important;
+}
+
+.kb-task__overdue-flag.ant-tag {
+  margin: 0;
+}
+
+/* 表单行 */
+.kb-form-row {
+  display: flex;
+  gap: 12px;
+}
+
+/* AI 弹窗 */
+.kb-ai-result {
+  margin-top: 16px;
+  padding: 14px;
+  background: #ebe4d6;
+  border-radius: 16px;
+}
+
+.kb-ai-subtasks {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.kb-ai-subtask {
+  padding: 10px 12px;
+  background: #fff;
+  border-radius: 12px;
+}
+
+.kb-ai-text {
+  padding: 12px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #1c1c1e;
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: #fff;
+  border-radius: 12px;
+}
+
+/* 导入导出 */
+.kb-io__section {
+  padding: 4px 0;
+}
+
+.kb-io__divider {
+  height: 1px;
+  margin: 16px 0;
+  background: #e3dacb;
+}
+
+/* 统计页 */
+.kb-stat-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 96px;
+  padding: 18px;
+  border-radius: 20px;
+}
+
+.kb-stat-card__label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1c1c1e;
+}
+
+.kb-stat-card__value {
+  font-size: 32px;
+  font-weight: 650;
+  line-height: 1.1;
+  color: #1c1c1e;
+}
+
+@media (max-width: 900px) {
+  .kb-columns {
+    grid-template-columns: 1fr;
+  }
+
+  .kb-form-row {
+    flex-direction: column;
+    gap: 0;
+  }
+}
+
 @media (max-width: 1100px) {
   .owner-stat-grid,
   .owner-prompts,
@@ -672,4 +1086,597 @@ textarea {
   .owner-top__title {
     font-size: 24px;
   }
+}
+
+/* ===== 看板-任务评论 ===== */
+.kb-comments {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.kb-comment {
+  background: rgba(0, 0, 0, 0.03);
+  border-radius: 8px;
+  padding: 8px 12px;
+}
+
+.kb-comment__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.kb-comment__head .ant-btn {
+  margin-left: auto;
+}
+
+/* ============================================================
+   主题覆盖层：清新轻量风（浅色背景 / 白色圆角卡片 / 薄荷绿点缀）
+   参考视觉：2026 UI&UX Web Design（亮色仪表盘风格）
+   ============================================================ */
+
+body,
+.owner-shell {
+  background: #f1f4f0;
+}
+
+/* ---------- 侧边栏：深色 → 白色卡片 ---------- */
+.owner-sider {
+  color: #1a241d;
+  background: #ffffff;
+  box-shadow: 0 14px 40px rgba(34, 70, 50, 0.08);
+}
+
+.owner-brand__mark {
+  color: #ffffff;
+  background: #22a06b;
+}
+
+.owner-brand__name {
+  color: #1a241d;
+}
+
+.owner-brand__sub {
+  color: #79837c;
+}
+
+.owner-nav__item {
+  color: #4c5750;
+}
+
+.owner-nav__item:hover {
+  color: #1a241d;
+  background: #eef5ef;
+}
+
+.owner-nav__item.is-active {
+  color: #157a4e;
+  font-weight: 600;
+  background: #e2f4e9;
+  box-shadow: none;
+}
+
+.owner-nav__item.is-active .owner-nav__icon {
+  color: #22a06b;
+}
+
+.owner-nav__logout {
+  color: #79837c;
+}
+
+.owner-nav__logout:hover {
+  color: #e5484d;
+  background: #fdeeee;
+}
+
+/* ---------- 顶部标题 ---------- */
+.owner-top__hint {
+  color: #79837c;
+}
+
+/* ---------- 统计磁贴：柔和粉彩 ---------- */
+.owner-tile--olive {
+  color: #0f3d26;
+  background: linear-gradient(135deg, #b8ecd0, #8fdfb4);
+}
+
+.owner-tile--orange {
+  color: #4c3a08;
+  background: linear-gradient(135deg, #ffe9a8, #ffd66e);
+}
+
+.owner-tile--brown {
+  color: #163a37;
+  background: linear-gradient(135deg, #b7ece6, #8ed8ce);
+}
+
+.owner-tile--slate {
+  color: #1a241d;
+  background: #ffffff;
+  box-shadow: 0 14px 36px rgba(34, 70, 50, 0.06);
+}
+
+/* ---------- 面板与芯片 ---------- */
+.owner-panel {
+  box-shadow: 0 14px 36px rgba(34, 70, 50, 0.06);
+}
+
+.owner-chip.ant-tag {
+  color: #157a4e;
+  background: #e2f4e9;
+  border-color: transparent;
+}
+
+/* ---------- 登录页：深色品牌区 → 薄荷渐变 ---------- */
+.owner-login {
+  min-height: 100%;
+  padding: 24px;
+  background:
+    radial-gradient(1000px 500px at 15% 0%, #dcf3e4 0%, transparent 60%),
+    radial-gradient(800px 400px at 100% 100%, #d6ece9 0%, transparent 55%),
+    #f1f4f0;
+}
+
+.owner-login__brand {
+  color: #103a26;
+  background: linear-gradient(160deg, #d8f2e2 0%, #a9e2c6 55%, #7fd0ab 100%);
+  border-radius: 32px 0 0 32px;
+}
+
+.owner-login__brand .ant-typography,
+.owner-login__brand .ant-card .ant-typography {
+  color: #103a26;
+}
+
+.owner-login__brand h2,
+.owner-login__brand p,
+.owner-login__brand .ant-paragraph {
+  color: #103a26;
+}
+
+.owner-login__card {
+  overflow: hidden;
+  border-radius: 32px;
+  box-shadow: 0 24px 60px rgba(34, 70, 50, 0.12);
+}
+
+/* ---------- 看板 ---------- */
+.kb-column {
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.kb-column.is-drag-over {
+  background: rgba(34, 160, 107, 0.12);
+  outline: 2px dashed #22a06b;
+}
+
+.kb-column__empty {
+  color: #79837c;
+  border-color: #d8e2da;
+}
+
+.kb-task {
+  box-shadow: 0 6px 18px rgba(34, 70, 50, 0.07);
+}
+
+.kb-task:hover {
+  box-shadow: 0 12px 28px rgba(34, 70, 50, 0.14);
+}
+
+.kb-task.is-overdue {
+  border-left: 3px solid #e5484d;
+}
+
+.kb-task__more {
+  color: #79837c;
+}
+
+.kb-project-card.ant-card {
+  box-shadow: 0 14px 36px rgba(34, 70, 50, 0.06);
+}
+
+.kb-project-card.ant-card:hover {
+  box-shadow: 0 22px 48px rgba(34, 70, 50, 0.13);
+}
+
+.kb-project-card__icon {
+  color: #ffffff;
+  background: #22a06b;
+}
+
+/* ---------- 看板登录页 ---------- */
+.kb-login {
+  background:
+    radial-gradient(1000px 500px at 15% 0%, #dcf3e4 0%, transparent 60%),
+    radial-gradient(800px 400px at 100% 100%, #d6ece9 0%, transparent 55%),
+    #f1f4f0;
+}
+
+.kb-login__card {
+  box-shadow: 0 24px 60px rgba(34, 70, 50, 0.12);
+}
+
+.kb-login__brand {
+  color: #103a26;
+  background: linear-gradient(160deg, #d8f2e2 0%, #a9e2c6 55%, #7fd0ab 100%);
+}
+
+.kb-login__brand h2,
+.kb-login__brand p,
+.kb-login__brand .ant-typography {
+  color: #103a26;
+}
+
+/* ============================================================
+   主题覆盖层 v2：暖橙奶油风（#EC6541 / #F9815E / #00283D / #131313 / #E4D8CF）
+   简单大气：奶油底 + 白卡 + 橙色点缀 + 深色侧栏
+   ============================================================ */
+
+body,
+.owner-shell {
+  background: #f6f1ec;
+}
+
+/* ---------- 侧边栏：深墨 #131313（参考图底部导航）+ 橙色激活 ---------- */
+.owner-sider {
+  color: #f6f1ec;
+  background: #131313;
+  box-shadow: 0 16px 40px rgba(19, 19, 19, 0.18);
+}
+
+.owner-brand__mark {
+  color: #131313;
+  background: #ec6541;
+}
+
+.owner-brand__name {
+  color: #f6f1ec;
+}
+
+.owner-brand__sub {
+  color: #9b948c;
+}
+
+.owner-nav__item {
+  color: #cfc8c0;
+}
+
+.owner-nav__item:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.owner-nav__item.is-active {
+  color: #ffffff;
+  font-weight: 600;
+  background: #ec6541;
+  box-shadow: 0 8px 18px rgba(236, 101, 65, 0.35);
+}
+
+.owner-nav__item.is-active .owner-nav__icon {
+  color: #ffffff;
+}
+
+.owner-nav__logout {
+  color: #9b948c;
+}
+
+.owner-nav__logout:hover {
+  color: #ec6541;
+  background: rgba(236, 101, 65, 0.12);
+}
+
+/* ---------- 统计磁贴：橙 / 浅橙 / 藏青 / 奶油 ---------- */
+.owner-tile--olive {
+  color: #ffffff;
+  background: linear-gradient(135deg, #f9815e, #ec6541);
+}
+
+.owner-tile--orange {
+  color: #00283d;
+  background: #e4d8cf;
+}
+
+.owner-tile--brown {
+  color: #ffffff;
+  background: #3a6b8a;
+}
+
+.owner-tile--slate {
+  color: #131313;
+  background: #ffffff;
+  box-shadow: 0 14px 36px rgba(70, 50, 40, 0.07);
+}
+
+.owner-tile__value {
+  letter-spacing: -0.02em;
+}
+
+/* ---------- 面板与芯片 ---------- */
+.owner-panel {
+  box-shadow: 0 14px 36px rgba(70, 50, 40, 0.07);
+}
+
+.owner-chip.ant-tag {
+  color: #b3421f;
+  background: #fbe3d9;
+  border-color: transparent;
+}
+
+/* ---------- 登录页：橙色渐变品牌区 ---------- */
+.owner-login {
+  min-height: 100%;
+  padding: 24px;
+  background:
+    radial-gradient(1000px 500px at 12% 0%, #fbe3d9 0%, transparent 60%),
+    radial-gradient(800px 400px at 100% 100%, #f3ddcf 0%, transparent 55%),
+    #f6f1ec;
+}
+
+.owner-login__brand {
+  color: #fff4ee;
+  background: linear-gradient(160deg, #f9815e 0%, #ec6541 60%, #d95334 100%);
+  border-radius: 32px 0 0 32px;
+}
+
+.owner-login__brand h2,
+.owner-login__brand p,
+.owner-login__brand .ant-typography {
+  color: #fff4ee;
+}
+
+.owner-login__card {
+  overflow: hidden;
+  border-radius: 32px;
+  box-shadow: 0 24px 60px rgba(70, 50, 40, 0.14);
+}
+
+/* ---------- 看板 ---------- */
+.kb-column {
+  background: rgba(255, 255, 255, 0.65);
+}
+
+.kb-column.is-drag-over {
+  background: rgba(236, 101, 65, 0.1);
+  outline: 2px dashed #ec6541;
+}
+
+.kb-column__empty {
+  color: #8a8178;
+  border-color: #e4d8cf;
+}
+
+.kb-task {
+  box-shadow: 0 6px 18px rgba(70, 50, 40, 0.08);
+}
+
+.kb-task:hover {
+  box-shadow: 0 12px 28px rgba(70, 50, 40, 0.15);
+}
+
+.kb-task.is-overdue {
+  border-left: 3px solid #d64545;
+}
+
+.kb-task__more {
+  color: #8a8178;
+}
+
+.kb-project-card.ant-card {
+  box-shadow: 0 14px 36px rgba(70, 50, 40, 0.07);
+}
+
+.kb-project-card.ant-card:hover {
+  box-shadow: 0 22px 48px rgba(70, 50, 40, 0.14);
+}
+
+.kb-project-card__icon {
+  color: #ffffff;
+  background: #ec6541;
+}
+
+/* ---------- 看板登录页 ---------- */
+.kb-login {
+  min-height: 100vh;
+  padding: 24px;
+  background:
+    radial-gradient(1000px 500px at 12% 0%, #fbe3d9 0%, transparent 60%),
+    radial-gradient(800px 400px at 100% 100%, #f3ddcf 0%, transparent 55%),
+    #f6f1ec;
+}
+
+.kb-login__card {
+  box-shadow: 0 24px 60px rgba(70, 50, 40, 0.14);
+}
+
+.kb-login__brand {
+  color: #fff4ee;
+  background: linear-gradient(160deg, #f9815e 0%, #ec6541 60%, #d95334 100%);
+}
+
+.kb-login__brand h2,
+.kb-login__brand p,
+.kb-login__brand .ant-typography {
+  color: #fff4ee;
+}
+
+/* ============================================================
+   主题覆盖层 v3：白底版（纯白背景，无莫兰迪/奶油色）
+   保留：橙色主色 #EC6541 / 深墨侧栏 #131313 / 藏青点缀
+   ============================================================ */
+
+body,
+.owner-shell {
+  background: #ffffff;
+}
+
+/* ---------- 统计磁贴：橙 / 白 / 藏青 / 浅橙，全部非莫兰迪 ---------- */
+.owner-tile--olive {
+  color: #ffffff;
+  background: linear-gradient(135deg, #f9815e, #ec6541);
+}
+
+.owner-tile--orange {
+  color: #131313;
+  background: #ffffff;
+  border: 1px solid #f0f0f0;
+}
+
+.owner-tile--brown {
+  color: #ffffff;
+  background: #3a6b8a;
+}
+
+.owner-tile--slate {
+  color: #131313;
+  background: #fff4ee;
+}
+
+/* ---------- 芯片：浅橙 ---------- */
+.owner-chip.ant-tag {
+  color: #ec6541;
+  background: #fdeee7;
+  border-color: #fbd5c5;
+}
+
+/* ---------- 登录页：白底 + 轻橙光晕 ---------- */
+.owner-login,
+.kb-login {
+  min-height: 100vh;
+  padding: 24px;
+  background:
+    radial-gradient(900px 460px at 10% 0%, #fdeee7 0%, transparent 55%),
+    radial-gradient(700px 380px at 100% 100%, #fff1e8 0%, transparent 50%),
+    #ffffff;
+}
+
+/* ---------- 看板：纯白列底 ---------- */
+.kb-column {
+  background: #fafafa;
+  border: 1px solid #f0f0f0;
+}
+
+.kb-column.is-drag-over {
+  background: #fff4ee;
+  outline: 2px dashed #ec6541;
+}
+
+.kb-column__empty {
+  color: #8a8178;
+  border-color: #e8e8e8;
+}
+
+/* ============================================================
+   主题覆盖层 v4：看板壳层白底 + 全站配色对齐（橙/浅橙/藏青/深墨/白）
+   ============================================================ */
+
+/* 看板壳层：白底 + 深墨顶栏 */
+.kb-shell {
+  background: #ffffff;
+}
+
+.kb-topbar {
+  background: #131313;
+  box-shadow: 0 8px 24px rgba(19, 19, 19, 0.18);
+}
+
+.kb-logo {
+  color: #f6f1ec;
+}
+
+.kb-nav__item {
+  color: #cfc8c0;
+}
+
+.kb-nav__item:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.kb-nav__item.is-active {
+  color: #ffffff;
+  background: #ec6541;
+  box-shadow: 0 6px 16px rgba(236, 101, 65, 0.35);
+}
+
+.kb-user__avatar {
+  color: #ffffff;
+  background: #ec6541;
+}
+
+/* AI 对话示例卡：对齐色板（橙 / 浅橙 / 藏青），去掉绿黄紫 */
+.owner-prompt-card:nth-child(1) {
+  color: #ffffff;
+  background: #ec6541;
+}
+
+.owner-prompt-card:nth-child(2) {
+  color: #ffffff;
+  background: #f9815e;
+}
+
+.owner-prompt-card:nth-child(3) {
+  color: #ffffff;
+  background: #3a6b8a;
+}
+
+.owner-prompt-card small {
+  opacity: 0.85;
+}
+
+/* ---------- v4b：清除剩余莫兰迪色 ---------- */
+
+/* 门户顶栏用户头像（绿色圆） */
+.owner-user .ant-avatar,
+span[style*="a3be72"] {
+  background: #ec6541;
+}
+
+/* 服务信息 / 在线客户端 / 消息流卡片底 */
+.owner-facts div {
+  color: #131313;
+  background: #fafafa;
+  border: 1px solid #f0f0f0;
+}
+
+.owner-client {
+  background: #fafafa;
+  border: 1px solid #f0f0f0;
+}
+
+.owner-msg {
+  background: #fafafa;
+  border: 1px solid #f0f0f0;
+}
+
+/* AI 对话头像与气泡 */
+.owner-chat__avatar--user {
+  color: #ffffff;
+  background: #ec6541;
+}
+
+.owner-chat__avatar--assistant {
+  color: #ffffff;
+  background: #3a6b8a;
+}
+
+.owner-chat__bubble--user {
+  color: #ffffff;
+  background: #ec6541;
+  border-bottom-right-radius: 6px;
+}
+
+.owner-chat__bubble--assistant {
+  color: #131313;
+  background: #f7f7f7;
+  border-bottom-left-radius: 6px;
+}
+
+/* 门户顶栏头像：绿 → 橙 */
+.owner-avatar {
+  color: #ffffff;
+  background: #ec6541;
 }

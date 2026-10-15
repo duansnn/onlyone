@@ -11,6 +11,8 @@ interface AuthState {
   loginAt: number | null;
   /** 登录成功后写入；payload 为后端返回的门户用户 */
   signIn: (user: SysUser, token: string) => void;
+  /** 个人信息修改成功后同步昵称显示 */
+  setNickname: (nickname: string) => void;
   signOut: () => void;
   isAuthenticated: () => boolean;
 }
@@ -31,6 +33,7 @@ export const useAuthStore = create<AuthState>()(
           nickname: user.nickname,
           loginAt: Date.now(),
         }),
+      setNickname: (nickname) => set({ nickname }),
       signOut: () =>
         set({ token: null, userId: null, username: null, nickname: null, loginAt: null }),
       isAuthenticated: () => Boolean(get().token),

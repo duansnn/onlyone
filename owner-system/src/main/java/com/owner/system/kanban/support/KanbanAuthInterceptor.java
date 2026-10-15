@@ -31,11 +31,12 @@ public class KanbanAuthInterceptor implements HandlerInterceptor {
         if (authorization == null || !authorization.startsWith(BEARER_PREFIX)) {
             throw new ServiceException(ResultCode.UNAUTHORIZED, "未登录或令牌缺失");
         }
-        Long userId = jwtTokenService.parseUserId(authorization.substring(BEARER_PREFIX.length()).trim());
+        String raw = authorization.substring(BEARER_PREFIX.length()).trim();
+        Long userId = jwtTokenService.parseUserId(raw);
         if (userId == null) {
             throw new ServiceException(ResultCode.UNAUTHORIZED, "令牌无效或已过期，请重新登录");
         }
-        KanbanCurrentUser.set(userId, null);
+        KanbanCurrentUser.set(userId, jwtTokenService.parseUsername(raw));
         return true;
     }
 

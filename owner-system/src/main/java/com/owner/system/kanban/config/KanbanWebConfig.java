@@ -25,7 +25,8 @@ public class KanbanWebConfig implements WebMvcConfigurer {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(new KanbanAuthInterceptor(jwtTokenService))
-                .addPathPatterns("/api/user/**", "/api/project/**", "/api/task/**", "/api/ai/**", "/api/stats/**")
+                .addPathPatterns("/api/user/**", "/api/project/**", "/api/task/**", "/api/ai/**",
+                        "/api/stats/**", "/api/note/**", "/api/focus/**", "/api/article/**")
                 .excludePathPatterns("/api/user/register", "/api/user/login");
     }
 

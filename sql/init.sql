@@ -266,3 +266,52 @@ CREATE TABLE IF NOT EXISTS `task` (
   KEY `idx_task_project_id` (`project_id`),
   KEY `idx_task_status` (`status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='任务看板-任务表';
+
+-- 任务评论表（可选迭代功能）
+CREATE TABLE IF NOT EXISTS `task_comment` (
+  `id` bigint PRIMARY KEY AUTO_INCREMENT,
+  `task_id` bigint NOT NULL COMMENT '所属任务ID',
+  `author` varchar(50) NOT NULL COMMENT '评论人用户名',
+  `content` varchar(1000) NOT NULL COMMENT '评论内容',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
+  KEY `idx_comment_task_id` (`task_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='任务看板-任务评论表';
+
+-- 知识库笔记表
+CREATE TABLE IF NOT EXISTS `note` (
+  `id` bigint PRIMARY KEY AUTO_INCREMENT,
+  `user_id` bigint NOT NULL COMMENT '所属用户ID',
+  `title` varchar(200) NOT NULL COMMENT '标题',
+  `content` longtext COMMENT '正文',
+  `category` varchar(50) COMMENT '分类',
+  `pinned` int NOT NULL DEFAULT 0 COMMENT '是否置顶 0/1',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
+  `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  KEY `idx_note_user_id` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='知识库-笔记表';
+
+-- 番茄专注记录表
+CREATE TABLE IF NOT EXISTS `focus_session` (
+  `id` bigint PRIMARY KEY AUTO_INCREMENT,
+  `user_id` bigint NOT NULL COMMENT '所属用户ID',
+  `task_id` bigint COMMENT '关联任务ID（可空）',
+  `minutes` int NOT NULL DEFAULT 25 COMMENT '专注时长(分钟)',
+  `note` varchar(500) COMMENT '备注',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
+  KEY `idx_focus_user_id` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='番茄钟-专注记录表';
+
+-- 博客文章表
+CREATE TABLE IF NOT EXISTS `article` (
+  `id` bigint PRIMARY KEY AUTO_INCREMENT,
+  `user_id` bigint NOT NULL COMMENT '作者用户ID',
+  `title` varchar(200) NOT NULL COMMENT '标题',
+  `content` longtext COMMENT '正文(Markdown)',
+  `category` varchar(50) COMMENT '分类',
+  `tags` varchar(200) COMMENT '标签，逗号分隔',
+  `status` varchar(20) NOT NULL DEFAULT 'draft' COMMENT 'draft/published',
+  `summary` varchar(500) COMMENT '摘要',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
+  `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  KEY `idx_article_user_id` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='博客-文章表';

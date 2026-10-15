@@ -37,6 +37,7 @@ public class PortalController {
     private final Environment environment;
     private final WebSocketBroadcastService webSocketBroadcastService;
     private final AiChatService aiChatService;
+    private final com.owner.system.service.PortalOverviewService portalOverviewService;
 
     @Value("${spring.application.name:owner-server}")
     private String applicationName;
@@ -59,6 +60,13 @@ public class PortalController {
         data.put("quartzHeartbeatExecutions", PortalHeartbeatJob.executionCount());
         data.put("aiAvailable", aiChatService.available());
         return R.ok(data);
+    }
+
+    @Operation(summary = "仪表盘总览", description = "门户与看板核心指标 + 近 N 天任务趋势")
+    @GetMapping("/overview")
+    public R<com.owner.system.domain.vo.PortalOverviewVO> overview(
+            @Parameter(description = "趋势天数，默认 14") @RequestParam(defaultValue = "14") int trendDays) {
+        return R.ok(portalOverviewService.overview(Math.min(Math.max(trendDays, 1), 90)));
     }
 
     @Operation(summary = "广播 WebSocket 消息", description = "按 owner.websocket.send-mode 配置的方式发送")

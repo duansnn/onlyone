@@ -25,6 +25,10 @@ server:
 spring:
   application:
     name: owner-server
+  config:
+    # 本地根目录的 .env（已被 .gitignore 排除）会作为配置源加载，
+    # 因此口令等敏感值只需写在 .env，不会进入代码仓库。文件不存在时自动跳过。
+    import: optional:file:./.env[.properties]
   profiles:
     active: local
   lifecycle:
@@ -243,8 +247,8 @@ owner:
   druid:
     monitor:
       enabled: true
-      login-username: admin
-      login-password: owner@2026
+      login-username: ${OWNER_DRUID_MONITOR_USERNAME:admin}
+      login-password: ${OWNER_DRUID_MONITOR_PASSWORD:change-me}
   thread-pool:
     core-size: 8
     max-size: 32

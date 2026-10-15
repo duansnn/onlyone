@@ -14,7 +14,7 @@ services:
     restart: unless-stopped
     environment:
       TZ: Asia/Shanghai
-      MYSQL_ROOT_PASSWORD: owner@2026
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-change-me}
       MYSQL_DATABASE: owner
     command:
       - --character-set-server=utf8mb4
@@ -29,7 +29,7 @@ services:
       # 首次启动自动执行建库建表脚本
       - ./sql/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
     healthcheck:
-      test: [ "CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-powner@2026" ]
+      test: [ "CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-p${MYSQL_ROOT_PASSWORD:-change-me}" ]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -46,7 +46,7 @@ services:
     command:
       - redis-server
       - --requirepass
-      - owner@2026
+      - ${REDIS_PASSWORD:-change-me}
       - --appendonly
       - "yes"
       - --maxmemory
@@ -58,7 +58,7 @@ services:
     volumes:
       - redis-data:/data
     healthcheck:
-      test: [ "CMD", "redis-cli", "-a", "owner@2026", "ping" ]
+      test: [ "CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-change-me}", "ping" ]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -129,10 +129,12 @@ services:
       MYSQL_PORT: "3306"
       MYSQL_DATABASE: owner
       MYSQL_USERNAME: root
-      MYSQL_PASSWORD: owner@2026
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-change-me}
       REDIS_HOST: redis
       REDIS_PORT: "6379"
-      REDIS_PASSWORD: owner@2026
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-change-me}
+      OWNER_DRUID_MONITOR_USERNAME: ${OWNER_DRUID_MONITOR_USERNAME:-admin}
+      OWNER_DRUID_MONITOR_PASSWORD: ${OWNER_DRUID_MONITOR_PASSWORD:-change-me}
       ROCKETMQ_NAME_SERVER: rocketmq-namesrv:9876
       ROCKETMQ_PRODUCER_GROUP: owner-producer
       # 如需启用 AI，请填入真实密钥

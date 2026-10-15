@@ -42,4 +42,9 @@ dist/
 ### Env / secrets ###
 .env
 .env.local
+.env.*.local
 *-local-secret.yml
+!.env.example
+
+### WorkBuddy 本地工作数据（笔记 / 截图） ###
+.workbuddy/

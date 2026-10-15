@@ -31,7 +31,7 @@ public class DruidMonitorConfig {
     @Bean
     public ServletRegistrationBean<StatViewServlet> druidStatViewServlet(
             @Value("${owner.druid.monitor.login-username:admin}") String username,
-            @Value("${owner.druid.monitor.login-password:owner@2026}") String password,
+            @Value("${owner.druid.monitor.login-password:change-me}") String password,
             @Value("${owner.druid.monitor.allow:}") String allow) {
         ServletRegistrationBean<StatViewServlet> registration =
                 new ServletRegistrationBean<>(new StatViewServlet(), MONITOR_PATH);

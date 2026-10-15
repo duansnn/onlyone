@@ -9,12 +9,12 @@ spring:
         master:
           url: jdbc:mysql://${MYSQL_HOST:mysql}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:owner}?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&rewriteBatchedStatements=true
           username: ${MYSQL_USERNAME:root}
-          password: ${MYSQL_PASSWORD:owner@2026}
+          password: ${MYSQL_PASSWORD:change-me}
   data:
     redis:
       host: ${REDIS_HOST:redis}
       port: ${REDIS_PORT:6379}
-      password: ${REDIS_PASSWORD:owner@2026}
+      password: ${REDIS_PASSWORD:change-me}
       database: 0
   quartz:
     jdbc:

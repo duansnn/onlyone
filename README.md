@@ -123,7 +123,7 @@ docker compose up -d --build
 | Knife4j 接口文档 | http://localhost:41452/doc.html |
 | Swagger UI | http://localhost:41452/swagger-ui.html |
 | OpenAPI JSON | http://localhost:41452/v3/api-docs |
-| Druid 监控 | http://localhost:41452/druid/login.html （admin / owner@2026） |
+| Druid 监控 | http://localhost:41452/druid/login.html （账号密码见本地 `.env`） |
 | 健康检查 | http://localhost:41452/actuator/health |
 | 运行状态 | http://localhost:41452/api/portal/info |
 | WebSocket | `ws://localhost:41452/ws/portal?clientId=demo` |

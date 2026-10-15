@@ -11,3 +11,7 @@ mvnw
 mvnw.cmd
 README.md
 docs/
+.env
+.env.*
+!.env.example
+.workbuddy/

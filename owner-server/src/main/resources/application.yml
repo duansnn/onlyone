@@ -1,0 +1,291 @@
+# ======================================================================
+#  Owner IntelliPortal 公共配置
+#  Spring Boot 4.1.0 / JDK 25 / Spring AI 2.0.0
+# ======================================================================
+server:
+  port: 41452
+  shutdown: graceful
+  servlet:
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
+  tomcat:
+    uri-encoding: UTF-8
+    threads:
+      max: 200
+      min-spare: 20
+    max-connections: 8192
+    accept-count: 200
+  compression:
+    enabled: true
+    mime-types: application/json,application/xml,text/html,text/plain,text/css,application/javascript
+    min-response-size: 2KB
+
+spring:
+  application:
+    name: owner-server
+  profiles:
+    active: local
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+  main:
+    allow-bean-definition-overriding: true
+  # Spring Boot 4 使用 Jackson 3，日期时间默认按 ISO-8601 输出
+  jackson:
+    time-zone: Asia/Shanghai
+    date-format: yyyy-MM-dd HH:mm:ss
+    default-property-inclusion: always
+    deserialization:
+      fail-on-unknown-properties: false
+  mvc:
+    throw-exception-if-no-handler-found: true
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 50MB
+      max-request-size: 100MB
+
+  # ------------------------------------------------------------------
+  # 数据源：Druid 1.2.28 + 动态数据源 4.5.0
+  # 由 dynamic-datasource 接管 DataSource，故排除 Druid 自带的自动配置
+  # ------------------------------------------------------------------
+  autoconfigure:
+    exclude:
+      - com.alibaba.druid.spring.boot4.autoconfigure.DruidDataSourceAutoConfigure
+      # Knife4j 4.5.0 的自动配置是针对 springdoc 2.x 编写的，与 springdoc 3.0.3 存在 API 冲突：
+      #   NoSuchMethodError: SpringDocConfigProperties.getGroupConfigs()
+      # 这里仅排除其自动配置，Knife4j 的增强 UI（/doc.html）来自静态 webjar，不受影响；
+      # 接口元数据仍由 springdoc 3.0.3 生成（/v3/api-docs）。
+      - com.github.xiaoymin.knife4j.spring.configuration.Knife4jAutoConfiguration
+      - com.github.xiaoymin.knife4j.spring.configuration.insight.Knife4jInsightAutoConfiguration
+  datasource:
+    dynamic:
+      enabled: true
+      primary: master
+      strict: false
+      lazy: false
+      graceful-shutdown: true
+      health:
+        enabled: true
+      datasource:
+        master:
+          driver-class-name: com.mysql.cj.jdbc.Driver
+          url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:owner}?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&rewriteBatchedStatements=true
+          username: ${MYSQL_USERNAME:root}
+          password: ${MYSQL_PASSWORD:}
+      # Druid 全局参数
+      druid:
+        initial-size: 5
+        min-idle: 5
+        max-active: 20
+        max-wait: 60000
+        time-between-eviction-runs-millis: 60000
+        min-evictable-idle-time-millis: 300000
+        max-evictable-idle-time-millis: 900000
+        validation-query: SELECT 1
+        validation-query-timeout: 5
+        test-while-idle: true
+        test-on-borrow: false
+        test-on-return: false
+        pool-prepared-statements: true
+        max-pool-prepared-statement-per-connection-size: 20
+        keep-alive: true
+        phy-max-use-count: 1000
+        connection-error-retry-attempts: 3
+        break-after-acquire-failure: false
+        filters: stat,wall,slf4j
+        connection-properties: druid.stat.mergeSql=true;druid.stat.slowSqlMillis=3000
+        wall:
+          multi-statement-allow: true
+          none-base-statement-allow: true
+
+  # ------------------------------------------------------------------
+  # 缓存：Spring Cache = REDIS，分布式能力由 Redisson 4.6.1 提供
+  # ------------------------------------------------------------------
+  cache:
+    type: redis
+    redis:
+      time-to-live: 2h
+      cache-null-values: false
+      use-key-prefix: true
+      key-prefix: "owner:cache:"
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      # 注意：Redis 无密码时请不要保留 password 配置项。
+      # 空字符串会让 Redisson 仍然发送 AUTH 命令而连接失败；
+      # 需要密码时设置环境变量 SPRING_DATA_REDIS_PASSWORD，或在对应 profile 中显式配置。
+      database: ${REDIS_DATABASE:0}
+      timeout: 10s
+      connect-timeout: 5s
+      client-type: lettuce
+      lettuce:
+        shutdown-timeout: 200ms
+        pool:
+          enabled: true
+          max-active: 16
+          max-idle: 8
+          min-idle: 2
+          max-wait: 5s
+          time-between-eviction-runs: 30s
+
+  # ------------------------------------------------------------------
+  # 定时任务：Quartz + JDBC JobStore
+  # ------------------------------------------------------------------
+  quartz:
+    job-store-type: jdbc
+    jdbc:
+      initialize-schema: never
+    auto-startup: true
+    wait-for-jobs-to-complete-on-shutdown: true
+    overwrite-existing-jobs: false
+    properties:
+      org.quartz.scheduler.instanceName: OwnerScheduler
+      org.quartz.scheduler.instanceId: AUTO
+      org.quartz.scheduler.skipUpdateCheck: true
+      org.quartz.scheduler.batchTriggerAcquisitionMaxCount: 10
+      # 不要指定 org.quartz.jobStore.class：
+      # 留空时 Spring 使用 LocalDataSourceJobStore，才能复用 Spring 管理的 DataSource；
+      # 若改成 JobStoreTX 会抛出 "DataSource name not set"。
+      org.quartz.jobStore.driverDelegateClass: org.quartz.impl.jdbcjobstore.StdJDBCDelegate
+      org.quartz.jobStore.tablePrefix: QRTZ_
+      org.quartz.jobStore.isClustered: true
+      org.quartz.jobStore.clusterCheckinInterval: 15000
+      org.quartz.jobStore.misfireThreshold: 60000
+      org.quartz.jobStore.useProperties: false
+      org.quartz.threadPool.class: org.quartz.simpl.SimpleThreadPool
+      org.quartz.threadPool.threadCount: 10
+
+  # ------------------------------------------------------------------
+  # AI：Spring AI 2.0.0（OpenAI 兼容端点）
+  # ------------------------------------------------------------------
+  ai:
+    openai:
+      api-key: ${OPENAI_API_KEY:sk-not-configured}
+      base-url: ${OPENAI_BASE_URL:https://api.openai.com}
+      chat:
+        options:
+          model: ${OPENAI_MODEL:gpt-4o-mini}
+          temperature: 0.7
+
+# ======================================================================
+#  ORM：MyBatis 3.5.19 + MyBatis-Plus 3.5.16
+# ======================================================================
+mybatis-plus:
+  mapper-locations: classpath*:mapper/**/*.xml
+  type-aliases-package: com.owner.system.domain.entity
+  configuration:
+    map-underscore-to-camel-case: true
+    cache-enabled: false
+    call-setters-on-nulls: true
+    default-statement-timeout: 30
+    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
+  global-config:
+    banner: false
+    db-config:
+      id-type: assign_id
+      table-underline: true
+      logic-delete-field: delFlag
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+      insert-strategy: not_null
+      update-strategy: not_null
+
+# ======================================================================
+#  接口文档：Knife4j 4.5.0 + springdoc 3.0.3
+# ======================================================================
+springdoc:
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: alpha
+    disable-swagger-default-url: true
+  default-produces-media-type: application/json
+  packages-to-scan: com.owner
+
+knife4j:
+  enable: true
+  production: false
+  basic:
+    enable: false
+  setting:
+    language: zh_cn
+    enable-footer: false
+    enable-footer-custom: false
+    enable-open-api: false
+    enable-swagger-models: true
+    swagger-model-name: 数据模型
+    enable-after-script: false
+    enable-group-dropdown: true
+    enable-version: false
+
+# ======================================================================
+#  OWNER 自定义配置
+# ======================================================================
+owner:
+  app:
+    version: 2026.03-SNAPSHOT
+  web:
+    cors:
+      allowed-origins: "*"
+  websocket:
+    path: /ws/portal
+    # 发送方式：local（默认） / redis / rocketmq / kafka / rabbitmq
+    send-mode: local
+    allowed-origins: "*"
+    send-buffer-size-limit: 524288
+  druid:
+    monitor:
+      enabled: true
+      login-username: admin
+      login-password: owner@2026
+  thread-pool:
+    core-size: 8
+    max-size: 32
+    queue-capacity: 1000
+    keep-alive-seconds: 60
+  quartz:
+    heartbeat:
+      enabled: true
+
+# ======================================================================
+#  Actuator
+# ======================================================================
+management:
+  endpoints:
+    web:
+      base-path: /actuator
+      exposure:
+        include: health,info,metrics,threaddump,loggers
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
+  health:
+    redis:
+      enabled: true
+    db:
+      enabled: true
+  info:
+    java:
+      enabled: true
+    env:
+      enabled: true
+
+# ======================================================================
+#  日志
+# ======================================================================
+logging:
+  config: classpath:logback-spring.xml
+  level:
+    root: info
+    com.owner: debug
+    org.springframework.web.socket: info
+    com.baomidou.dynamic.datasource: info

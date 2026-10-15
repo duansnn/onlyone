@@ -1,0 +1,35 @@
+# ======================================================================
+#  本地开发环境（默认激活）
+#  依赖：本机 MySQL 3306、Redis 6379
+#  启动：java -jar owner-server.jar --spring.profiles.active=local
+# ======================================================================
+spring:
+  datasource:
+    dynamic:
+      datasource:
+        master:
+          url: jdbc:mysql://localhost:3306/owner?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&rewriteBatchedStatements=true
+          username: ${MYSQL_USERNAME:root}
+          # 本地开发默认口令，生产请通过环境变量 MYSQL_PASSWORD 覆盖
+          password: ${MYSQL_PASSWORD:9999}
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      database: 0
+  # 本地开发让 Quartz 自动建表，避免首次启动因缺表失败
+  quartz:
+    jdbc:
+      initialize-schema: always
+
+# 本地不启动 RocketMQ / Kafka / RabbitMQ：
+# 不配置 rocketmq.name-server，RocketMQ Spring 的自动配置会整体跳过
+
+owner:
+  websocket:
+    send-mode: local
+
+logging:
+  level:
+    com.owner: debug
+    com.baomidou.dynamic.datasource: debug

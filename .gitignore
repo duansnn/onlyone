@@ -1,0 +1,45 @@
+### Java / Maven ###
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+*.class
+*.jar
+*.war
+*.ear
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.jar
+
+### IDE ###
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.settings/
+.project
+.classpath
+.factorypath
+nbproject/
+
+### OS ###
+.DS_Store
+Thumbs.db
+desktop.ini
+
+### Logs / temp ###
+logs/
+*.log
+*.tmp
+
+### Frontend (owner-web) ###
+node_modules/
+dist/
+.vite/
+*.local
+.eslintcache
+
+### Env / secrets ###
+.env
+.env.local
+*-local-secret.yml

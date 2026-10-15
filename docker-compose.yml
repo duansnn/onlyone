@@ -1,0 +1,174 @@
+# ======================================================================
+#  Owner IntelliPortal 一键启动：
+#  MySQL 8.0 + Redis 7 + RocketMQ 5 + 应用（owner-server:41452）
+#  使用：docker compose up -d --build
+# ======================================================================
+name: owner
+
+services:
+
+  # ---------------------------------------------------------------- MySQL
+  mysql:
+    image: mysql:8.0
+    container_name: owner-mysql
+    restart: unless-stopped
+    environment:
+      TZ: Asia/Shanghai
+      MYSQL_ROOT_PASSWORD: owner@2026
+      MYSQL_DATABASE: owner
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_general_ci
+      - --default-time-zone=+08:00
+      - --lower_case_table_names=1
+      - --max_connections=1000
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      # 首次启动自动执行建库建表脚本
+      - ./sql/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-powner@2026" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+    networks: [ owner-net ]
+
+  # ---------------------------------------------------------------- Redis
+  redis:
+    image: redis:7-alpine
+    container_name: owner-redis
+    restart: unless-stopped
+    environment:
+      TZ: Asia/Shanghai
+    command:
+      - redis-server
+      - --requirepass
+      - owner@2026
+      - --appendonly
+      - "yes"
+      - --maxmemory
+      - 512mb
+      - --maxmemory-policy
+      - allkeys-lru
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: [ "CMD", "redis-cli", "-a", "owner@2026", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [ owner-net ]
+
+  # ------------------------------------------------------- RocketMQ NameSrv
+  rocketmq-namesrv:
+    image: apache/rocketmq:5.3.1
+    container_name: owner-rocketmq-namesrv
+    restart: unless-stopped
+    environment:
+      TZ: Asia/Shanghai
+      JAVA_OPT_EXT: "-Xms256m -Xmx256m -Xmn128m"
+    command: sh mqnamesrv
+    ports:
+      - "9876:9876"
+    volumes:
+      - rocketmq-namesrv-logs:/home/rocketmq/logs
+    networks: [ owner-net ]
+
+  # --------------------------------------------------------- RocketMQ Broker
+  rocketmq-broker:
+    image: apache/rocketmq:5.3.1
+    container_name: owner-rocketmq-broker
+    restart: unless-stopped
+    depends_on:
+      rocketmq-namesrv:
+        condition: service_started
+    environment:
+      TZ: Asia/Shanghai
+      NAMESRV_ADDR: rocketmq-namesrv:9876
+      JAVA_OPT_EXT: "-Xms512m -Xmx512m -Xmn256m"
+    command: sh mqbroker -c /home/rocketmq/conf/broker.conf
+    ports:
+      - "10909:10909"
+      - "10911:10911"
+    volumes:
+      - ./docker/rocketmq/broker.conf:/home/rocketmq/conf/broker.conf:ro
+      - rocketmq-broker-store:/home/rocketmq/store
+      - rocketmq-broker-logs:/home/rocketmq/logs
+    networks: [ owner-net ]
+
+  # ------------------------------------------------------------ 应用服务
+  owner-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: owner-server:2026.03-SNAPSHOT
+    container_name: owner-server
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rocketmq-broker:
+        condition: service_started
+    environment:
+      TZ: Asia/Shanghai
+      SPRING_PROFILES_ACTIVE: docker
+      # 堆参数：-Xms512m -Xmx512m
+      JAVA_OPTS: >-
+        -Xms512m -Xmx512m
+        -XX:+UseG1GC -XX:MaxGCPauseMillis=200
+        -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/app/logs
+        -Dfile.encoding=UTF-8 -Duser.timezone=Asia/Shanghai
+      MYSQL_HOST: mysql
+      MYSQL_PORT: "3306"
+      MYSQL_DATABASE: owner
+      MYSQL_USERNAME: root
+      MYSQL_PASSWORD: owner@2026
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      REDIS_PASSWORD: owner@2026
+      ROCKETMQ_NAME_SERVER: rocketmq-namesrv:9876
+      ROCKETMQ_PRODUCER_GROUP: owner-producer
+      # 如需启用 AI，请填入真实密钥
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-sk-not-configured}
+    ports:
+      - "41452:41452"
+    volumes:
+      - app-logs:/app/logs
+    networks: [ owner-net ]
+
+  # ------------------------------------------------------------ 门户前端
+  # Nginx 托管 owner-web 构建产物，并把 /api、/ws 反代到 owner-server:41452
+  owner-web:
+    build:
+      context: ./owner-web
+      dockerfile: Dockerfile
+    image: owner-web:2026.03.0
+    container_name: owner-web
+    restart: unless-stopped
+    depends_on:
+      owner-server:
+        condition: service_started
+    environment:
+      TZ: Asia/Shanghai
+    ports:
+      - "8080:80"
+    networks: [ owner-net ]
+
+volumes:
+  mysql-data:
+  redis-data:
+  rocketmq-namesrv-logs:
+  rocketmq-broker-store:
+  rocketmq-broker-logs:
+  app-logs:
+
+networks:
+  owner-net:
+    driver: bridge

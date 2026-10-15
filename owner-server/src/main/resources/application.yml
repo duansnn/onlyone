@@ -164,6 +164,8 @@ spring:
 
   # ------------------------------------------------------------------
   # AI：Spring AI 2.0.0（OpenAI 兼容端点）
+  # 通义千问：OPENAI_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode  OPENAI_MODEL=qwen-plus
+  # DeepSeek：OPENAI_BASE_URL=https://api.deepseek.com                      OPENAI_MODEL=deepseek-chat
   # ------------------------------------------------------------------
   ai:
     openai:
@@ -235,6 +237,15 @@ knife4j:
 owner:
   app:
     version: 2026.03-SNAPSHOT
+  # ------------------------------------------------------------------
+  # 任务看板（PRD：AI 轻量化任务看板）
+  # ------------------------------------------------------------------
+  kanban:
+    jwt:
+      # HS256 签名密钥，生产环境务必通过环境变量覆盖（至少 32 字节随机串）
+      secret: ${OWNER_KANBAN_JWT_SECRET:owner-kanban-jwt-secret-change-me-in-production}
+      # 令牌有效期（小时）
+      expire-hours: ${OWNER_KANBAN_JWT_EXPIRE_HOURS:72}
   web:
     cors:
       allowed-origins: "*"

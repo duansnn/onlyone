@@ -226,3 +226,43 @@ CREATE INDEX IDX_QRTZ_FT_J_G ON QRTZ_FIRED_TRIGGERS (SCHED_NAME, JOB_NAME, JOB_G
 CREATE INDEX IDX_QRTZ_FT_JG ON QRTZ_FIRED_TRIGGERS (SCHED_NAME, JOB_GROUP);
 CREATE INDEX IDX_QRTZ_FT_T_G ON QRTZ_FIRED_TRIGGERS (SCHED_NAME, TRIGGER_NAME, TRIGGER_GROUP);
 CREATE INDEX IDX_QRTZ_FT_TG ON QRTZ_FIRED_TRIGGERS (SCHED_NAME, TRIGGER_GROUP);
+
+-- ======================================================================
+-- AI 轻量化任务看板（PRD）：user / project / task
+-- ======================================================================
+
+-- 看板用户表（独立于 sys_user，bcrypt 密码 + JWT 登录）
+CREATE TABLE IF NOT EXISTS `user` (
+  `id` bigint PRIMARY KEY AUTO_INCREMENT COMMENT '用户id',
+  `username` varchar(50) NOT NULL UNIQUE COMMENT '用户名',
+  `password` varchar(100) NOT NULL COMMENT '加密后的密码(bcrypt)',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
+  `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='任务看板-用户表';
+
+-- 项目表
+CREATE TABLE IF NOT EXISTS `project` (
+  `id` bigint PRIMARY KEY AUTO_INCREMENT,
+  `user_id` bigint NOT NULL COMMENT '所属用户ID',
+  `name` varchar(100) NOT NULL COMMENT '项目名称',
+  `description` text COMMENT '项目描述',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
+  `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  KEY `idx_project_user_id` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='任务看板-项目表';
+
+-- 任务表
+CREATE TABLE IF NOT EXISTS `task` (
+  `id` bigint PRIMARY KEY AUTO_INCREMENT,
+  `project_id` bigint NOT NULL COMMENT '所属项目ID',
+  `title` varchar(200) NOT NULL COMMENT '任务标题',
+  `description` text COMMENT '任务详情',
+  `due_date` date COMMENT '截止日期',
+  `priority` varchar(20) COMMENT 'high/medium/low',
+  `status` varchar(20) NOT NULL COMMENT 'todo/doing/done',
+  `tags` varchar(200) COMMENT '标签，逗号分隔',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
+  `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  KEY `idx_task_project_id` (`project_id`),
+  KEY `idx_task_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='任务看板-任务表';

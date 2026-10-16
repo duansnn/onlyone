@@ -1,0 +1,240 @@
+/* 日用铺电商前端样式：只做版式与留白，配色交由 antd token */
+
+.mall-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #fafafa;
+}
+
+.mall-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: #fff;
+  border-bottom: 1px solid #eee;
+}
+
+.mall-header__inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.mall-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 17px;
+  font-weight: 500;
+  color: #111;
+  white-space: nowrap;
+}
+
+.mall-brand__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  background: #111;
+}
+
+.mall-search {
+  flex: 1;
+  max-width: 420px;
+}
+
+.mall-header__nav a {
+  color: #525252;
+}
+
+.mall-header__nav a:hover {
+  color: #111;
+}
+
+.mall-user {
+  cursor: pointer;
+  color: #111;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mall-main {
+  flex: 1;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.mall-footer {
+  border-top: 1px solid #eee;
+  background: #fff;
+  color: #737373;
+  font-size: 13px;
+  padding: 18px 20px;
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.mall-section-title {
+  font-size: 15px;
+  font-weight: 500;
+  margin: 0 0 12px;
+}
+
+.mall-hero {
+  background: #fff;
+  border-radius: 20px;
+  padding: 28px;
+  margin-bottom: 20px;
+  border: 1px solid #eee;
+}
+
+.mall-hero h1 {
+  font-size: 26px;
+  font-weight: 500;
+  margin: 0 0 8px;
+}
+
+.mall-hero p {
+  color: #525252;
+  margin: 0;
+}
+
+.mall-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.mall-card {
+  background: #fff;
+  border: 1px solid #eee;
+  border-radius: 18px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: border-color 0.15s;
+}
+
+.mall-card:hover {
+  border-color: #d4d4d4;
+}
+
+.mall-card__img {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  background: #f5f5f5;
+}
+
+.mall-card__body {
+  padding: 12px 14px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+.mall-card__name {
+  font-size: 14px;
+  color: #111;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: 40px;
+}
+
+.mall-card__price {
+  color: #dc2626;
+  font-size: 17px;
+  font-weight: 500;
+}
+
+.mall-card__meta {
+  font-size: 12px;
+  color: #737373;
+}
+
+.mall-price {
+  color: #dc2626;
+  font-weight: 500;
+}
+
+.mall-thumbs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.mall-thumbs img {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid #eee;
+  cursor: pointer;
+  background: #f5f5f5;
+}
+
+.mall-coupon {
+  border: 1px solid #eee;
+  border-radius: 14px;
+  padding: 12px 14px;
+  background: #fff;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.mall-coupon__amount {
+  color: #dc2626;
+  font-size: 20px;
+  font-weight: 500;
+}
+
+.mall-coupon__amount small {
+  font-size: 12px;
+}
+
+.admin-shell {
+  min-height: 100vh;
+}
+
+.admin-sider {
+  border-right: 1px solid #eee;
+}
+
+.admin-brand {
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 500;
+  font-size: 15px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.admin-header {
+  background: #fff;
+  border-bottom: 1px solid #eee;
+  padding: 0 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.admin-content {
+  padding: 20px;
+}

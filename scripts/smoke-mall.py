@@ -9,12 +9,13 @@
   6) 优惠券：店主建券 -> 顾客领取 -> 下单抵扣 -> 支付核销
   7) 权限：顾客访问店铺后台 403；店主访问平台接口 403
 """
+import os
 import json
 import time
 import urllib.error
 import urllib.request
 
-BASE = "http://127.0.0.1:41452"
+BASE = os.environ.get("MALL_BASE", "http://127.0.0.1:41452")
 PASS, FAIL = [], []
 
 # 每次运行用不同的手机号与货号，脚本可以反复跑

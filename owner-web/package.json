@@ -2,7 +2,7 @@
   "name": "owner-web",
   "private": true,
   "version": "2026.03.0",
-  "description": "Owner IntelliPortal 门户前端（React 19 + Vite + TypeScript + Ant Design）",
+  "description": "日用铺电商前端（React 19 + Vite + TypeScript + Ant Design）店面与店铺后台",
   "type": "module",
   "scripts": {
     "dev": "vite",

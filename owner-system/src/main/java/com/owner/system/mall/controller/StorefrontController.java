@@ -6,6 +6,7 @@ import com.owner.common.core.domain.R;
 import com.owner.system.mall.domain.vo.ProductCardVO;
 import com.owner.system.mall.domain.vo.ProductDetailVO;
 import com.owner.system.mall.domain.vo.ReviewVO;
+import com.owner.system.mall.domain.vo.ShopBriefVO;
 import com.owner.system.mall.domain.vo.StoreHomeVO;
 import com.owner.system.mall.service.StorefrontService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -18,6 +19,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 /**
  * 店面前台接口（无需登录）：首页、类目列表、搜索、详情、评价。
  */
@@ -28,6 +31,12 @@ import org.springframework.web.bind.annotation.RestController;
 public class StorefrontController {
 
     private final StorefrontService storefrontService;
+
+    @Operation(summary = "营业中的店铺列表", description = "公开接口，前端用于确定默认浏览哪家店")
+    @GetMapping("/shops")
+    public R<List<ShopBriefVO>> shops() {
+        return R.ok(storefrontService.enabledShops());
+    }
 
     @Operation(summary = "店面首页")
     @GetMapping("/shops/{shopId}/home")

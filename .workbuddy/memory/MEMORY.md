@@ -41,20 +41,36 @@
   加依赖前先 grep 确认有引用，别把上一版能力再带回来
 
 ## 前端约定（owner-web）
-- **2026-10-16 状态：仍是旧门户（Login / Dashboard / UserManage / NotFound），与电商系统不匹配，
-  用户明确要求「前端先不动」，整体重做时再参考本节**
-- 重做时要做的：店面前台（首页/类目/搜索/详情/购物车/结算/订单/售后/评价/领券）、
-  店铺后台、平台后台
-- 技术栈：React 19 + Vite + TS + antd 6 + React Router 7 + Zustand 5 + Axios
-- `src/api/request.ts` 的响应拦截器负责拆包 `R`，业务代码直接拿 `data`
+- **2026-10-16 已整体迁移到电商**，一套工程三种界面：
+  - 店面（顾客，`/` 下，**公开可逛**）：Home / ProductList / ProductDetail / Cart / Checkout / Orders / Account
+  - 店铺后台（`/admin`）：Dashboard / Orders / Refunds / Products / Stock / Coupons / Reviews / Shop
+  - 平台后台（`/admin/shops`、`/admin/users`，仅 `platformAdmin`）
+  - 登录页 `/login` 带「登录 / 注册」页签
+- 目录：`api/{request,mall,admin}.ts`、`layout/{StoreLayout,AdminLayout}`、`pages/{Login,store,admin,platform}`、
+  `router`（`RequireAuth` / `RequireShop` / `RequirePlatform` 三层守卫）、`store/{auth,shop}`、
+  `types/mall.ts`、`utils/{format,feedback}.ts`
+- `src/api/request.ts` 的响应拦截器负责拆包 `R`，业务代码直接拿 `data`；
+  **`put(url, data, params)` 支持第三个参数**（状态切换类接口是 `@RequestParam`，要走 query）
 - antd v6 用 `App.useApp()` 取 message，经 `src/utils/feedback.ts` 桥接给非组件模块
 - 开发期由 Vite 代理 `/api`、`/actuator`、`/v3/api-docs`、`/doc.html` 到 41452
-- **雪花 ID 一律用 `string`**：后端主键为 MyBatis-Plus `IdType.ASSIGN_ID`，19 位整数
-  超出 JS `Number.MAX_SAFE_INTEGER`（16 位）。后端由 `owner-framework/config/JacksonConfig`
-  注册 `Long -> String` 序列化器。
-  区分：包装类型 `Long` 序列化为字符串，基本类型 `long`（`PageResult.total`、`R.timestamp`）仍是数字
+  （后端地址可用 `VITE_BACKEND_ORIGIN` 覆盖，端口可用 `VITE_DEV_PORT` 覆盖）
+- **雪花 ID 一律用 `string`**（`types/mall.ts` 的 `Id = string`）：后端主键为 MyBatis-Plus
+  `IdType.ASSIGN_ID`，19 位整数超出 JS `Number.MAX_SAFE_INTEGER`（16 位）。
+  后端由 `owner-framework/config/JacksonConfig` 注册 `Long -> String` 序列化器。
+  区分：**包装类型 `Long` 序列化为字符串**（所以价格字段是 `"990"`），
+  **基本类型 `long` 仍是数字**（`PageResult.total`、`R.timestamp`、`minPrice`）。
+  前端把 Long 字段声明为 `Money = string | number`，参与运算前一律过 `utils/format.ts` 的 `num()`
+- **金额**：后端一律分；展示用 `money()`/`yuan()`，表单让用户填元，提交前 `yuanToFen()`
+- **下单必须回传单价** `price`（后端比对，防篡改）——购物车/立即购买把
+  `{shopId, items:[{skuId,quantity,price}]}` 塞进 `sessionStorage['checkout:payload']`
+- **店面默认店铺**：公开接口 `GET /api/storefront/shops` 返回营业中的店铺（前端未登录也能确定逛哪家店）
+- **支付不假装成功**：`payable=false` 时只提示未开通；开发环境才有「模拟支付成功」按钮，
+  调 `/api/pay/mock/callback`，走与真实通道相同的校验与幂等逻辑
+- antd v6 坑：`Divider` 的 `orientation` 现在只接受 `horizontal/vertical`（旧的 `left/center/right` 已移除）
 - **测试脚本坑**：Git Bash 不认 `D:/...` 形式的 PATH 项，调 java 必须用绝对路径
   `/d/soft/.../bin/java.exe`（否则命中 Oracle javapath 的 Java 17，报 UnsupportedClassVersionError）
+- 冒烟脚本支持 `MALL_BASE` 环境变量覆盖后端地址（默认 `http://127.0.0.1:41452`），
+  本机 41452 常被 IDEA 调试实例占着，验证时用 `MALL_BASE=http://127.0.0.1:41453`
 
 ## Spring Boot 4 必须注意
 - 不要用 `spring-boot-starter-aop`（已移除），AOP 用 `aspectjweaver`
@@ -82,7 +98,7 @@
   `smoke-platform-users.py`（13 项），可重复跑。
   **后端必须用 Bash 的 `run_in_background=true` 起**，否则 shell 返回即被回收
 - 打包产物是 `owner-server.jar`（无版本号后缀）
-- 前端未迁移；README（2026-10-16 重写）与接口清单是新建前端时的第一手参考
+- 前端已完整对接（2026-10-16）；README §9 与 §6 接口清单是前端改动时的第一手参考
 
 ## 本地运行环境（本机）
 - MySQL 8.0：`localhost:3306`，root / `9999`，库 `owner`（旧库 `mtlntelliportal` 已废弃）

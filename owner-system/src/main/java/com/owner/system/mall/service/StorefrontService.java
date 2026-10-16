@@ -17,10 +17,12 @@ import com.owner.system.mall.domain.vo.CategoryVO;
 import com.owner.system.mall.domain.vo.ProductCardVO;
 import com.owner.system.mall.domain.vo.ProductDetailVO;
 import com.owner.system.mall.domain.vo.ReviewVO;
+import com.owner.system.mall.domain.vo.ShopBriefVO;
 import com.owner.system.mall.domain.vo.StoreHomeVO;
 import com.owner.system.mall.mapper.CategoryMapper;
 import com.owner.system.mall.mapper.ProductMapper;
 import com.owner.system.mall.mapper.ReviewMapper;
+import com.owner.system.mall.mapper.ShopMapper;
 import com.owner.system.mall.support.ProductAssembler;
 import com.owner.system.mall.support.ShopGuard;
 import com.owner.system.mapper.SysUserMapper;
@@ -56,10 +58,26 @@ public class StorefrontService {
     private final ProductMapper productMapper;
     private final CategoryMapper categoryMapper;
     private final ReviewMapper reviewMapper;
+    private final ShopMapper shopMapper;
     private final SysUserMapper sysUserMapper;
     private final ShopGuard shopGuard;
     private final CategoryService categoryService;
     private final ProductAssembler assembler;
+
+    /**
+     * 营业中的店铺列表（公开）。
+     * <p>前端未登录时也要能逛店面，用它确定默认进哪家店。</p>
+     */
+    public List<ShopBriefVO> enabledShops() {
+        List<Shop> shops = shopMapper.selectList(Wrappers.<Shop>lambdaQuery()
+                .eq(Shop::getStatus, 0)
+                .orderByAsc(Shop::getId));
+        List<ShopBriefVO> list = new ArrayList<>(shops.size());
+        for (Shop shop : shops) {
+            list.add(new ShopBriefVO(shop.getId(), shop.getName(), null, null));
+        }
+        return list;
+    }
 
     // ------------------------------------------------------------------
     // 首页

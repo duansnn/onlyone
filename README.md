@@ -23,7 +23,7 @@
 | 接口文档 | Knife4j 4.5.0 + springdoc 3.0.3 |
 | 定时任务 | Quartz + JDBC JobStore（`OwnerScheduler`） |
 | 构建 | Maven 编译插件 3.14.0，UTF-8；Lombok 1.18.46 / MapStruct 1.6.3 |
-| 前端 | React 19 + Vite + TypeScript + Ant Design 6（**尚未迁移到电商，见 §9**） |
+| 前端 | React 19 + Vite + TypeScript + Ant Design 6（店面 + 店铺后台 + 平台后台，见 §9） |
 
 ---
 
@@ -45,7 +45,7 @@ onlyone
 ├── owner-framework        # 数据源、ORM、缓存、接口文档、定时任务、全局异常
 ├── owner-system           # 业务：全站账号 + com.owner.system.mall 电商
 ├── owner-server           # 启动模块：主类、配置、打包
-└── owner-web              # 前端工程（仍是旧门户，待重做）
+└── owner-web              # 前端工程（店面 + 店铺后台 + 平台后台）
 ```
 
 ### framework 关键类
@@ -260,7 +260,7 @@ PUT 回传   2110285652501422000
 | 模块 | 接口 |
 | --- | --- |
 | 认证 | `POST /api/auth/register`、`POST /api/auth/login`、`POST /api/auth/logout`、`GET /api/auth/me`、`PUT /api/auth/profile`、`PUT /api/auth/password`、`POST /api/auth/mobile/code`、`PUT /api/auth/mobile` |
-| 店面 | `GET /api/storefront/shops/{shopId}/home`、`/products`、`/search`、`/products/{productId}`、`/products/{productId}/reviews` |
+| 店面 | `GET /api/storefront/shops`（营业中的店铺）、`/api/storefront/shops/{shopId}/home`、`/products`、`/search`、`/products/{productId}`、`/products/{productId}/reviews` |
 | 地址 | `GET/POST /api/address`、`PUT /api/address/{addressId}/default`、`DELETE /api/address/{addressId}` |
 | 购物车 | `GET /api/cart`、`GET /api/cart/count`、`POST /api/cart`、`POST /api/cart/merge`、`PUT /api/cart/quantity`、`DELETE /api/cart/{skuId}`、`DELETE /api/cart` |
 | 订单 | `POST /api/order/preview`、`POST /api/order/submit`、`GET /api/order/mine`、`GET /api/order/{orderId}`、`POST /api/order/{orderId}/cancel`、`POST /api/order/{orderId}/confirm`、`GET /api/order/options` |
@@ -373,19 +373,49 @@ PUT 回传   2110285652501422000
 
 ---
 
-## 9. 前端工程 owner-web（尚未迁移）
+## 9. 前端工程 owner-web
 
-**当前仍是旧门户的登录页、仪表盘与用户管理页，与电商系统不匹配，需要整体重做。**
+已整体迁移到电商系统，一套工程分三种界面：
 
-要做的部分：
+| 区域 | 路由前缀 | 页面 |
+| --- | --- | --- |
+| 店面（顾客，公开可逛） | `/` | 首页、全部商品（类目筛选 / 排序 / 分页）、搜索、商品详情（含评价）、购物车、确认订单、我的订单（支付 / 取消 / 收货 / 申请售后 / 评价）、我的账号（资料 / 地址 / 优惠券 / 退款售后） |
+| 店铺后台（店主 / 店员） | `/admin` | 店铺看板、订单与发货、退款售后、商品管理、库存管理、优惠券、顾客评价、店铺与分类（资料 / 类目 / 店员） |
+| 平台后台（平台管理员） | `/admin/shops`、`/admin/users` | 店铺管理（总览 + 开通店铺 + 停用）、用户管理（查询 / 停用 / 重置密码） |
 
-| 部分 | 页面 |
-| --- | --- |
-| 店面前台 | 首页 / 类目 / 搜索 / 商品详情 / 购物车 / 结算 / 我的订单 / 售后 / 评价 / 领券中心 |
-| 店铺后台 | 仪表盘 / 商品 / 规格与库存 / 订单发货 / 售后处理 / 评价 / 优惠券 / 员工 / 店铺资料 |
-| 平台后台 | 店铺管理 / 全站用户管理 |
+登录页 `/login` 带「登录 / 注册」两个页签。一个账号同时是顾客和店主：登录返回的
+`shops` 非空时，顶部用户菜单才出现「进入店铺后台」。
 
-技术栈与既有约定：
+### 目录约定
+
+```
+owner-web/src
+├── api/          request.ts（拆包 R）/ mall.ts（顾客侧）/ admin.ts（店铺 + 平台）
+├── layout/       StoreLayout.tsx（店面）/ AdminLayout.tsx（后台）
+├── pages/        Login / store/* / admin/* / platform/*
+├── router/       index.tsx（RequireAuth / RequireShop / RequirePlatform 三层守卫）
+├── store/        auth.ts（令牌 + 身份 + 当前店铺）/ shop.ts（当前浏览的店铺）
+├── types/        mall.ts（与后端 VO/DTO 一一对应）
+└── utils/        format.ts（分↔元、时间、状态配色）/ feedback.ts（message 桥接）
+```
+
+### 与后端对接的几个关键点
+
+- **金额**：后端一律**分**。展示用 `money()` / `yuan()`，表单里让用户填**元**，提交前用
+  `yuanToFen()` 转回去（商品价格、优惠券门槛与面额都是这样）。
+- **雪花 ID**：一律 `string`，类型里定义为 `Id = string`。
+- **Long 包装类型序列化成字符串**：促销价、订单明细单价等字段在 JSON 里是 `"990"` 而不是
+  `990`，所以类型声明为 `Money = string | number`，参与运算前统一过 `num()`。统计类字段
+  （`long`）本来就是数字。
+- **下单必须回传单价**：后端会比对 `price` 与会话里的价格，不一致直接拒绝（防篡改）。所以
+  购物车和「立即购买」把 `price` 一起塞进 `sessionStorage['checkout:payload']`。
+- **支付不假装成功**：`/api/pay/{orderId}` 返回 `payable=false` 时界面只提示「支付通道未开通」，
+  订单留在待付款。开发环境额外给一个「模拟支付成功」按钮，它调用的是
+  `/api/pay/mock/callback`，走的是和真实通道完全相同的回调校验与幂等逻辑。
+- **店面默认进哪家店**：新增公开接口 `GET /api/storefront/shops` 返回营业中的店铺，
+  未登录也能看到，前端据此确定浏览的店铺（多店时按返回顺序取第一家）。
+
+技术栈：
 
 | 依赖 | 版本 |
 | --- | --- |
@@ -399,15 +429,14 @@ PUT 回传   2110285652501422000
 
 - dev 端口 `5273`，容器 `8080`；Vite 把 `/api`、`/actuator`、`/v3/api-docs`、`/doc.html`
   代理到 `41452`，浏览器侧与后端同源。
-- `src/api/request.ts` 的响应拦截器负责拆包 `R`，业务代码直接拿 `data`。
-- antd v6 用 `App.useApp()` 取 message，经 `src/utils/feedback.ts` 桥接给非组件模块。
-- 含雪花主键的字段一律声明为 `string`。
+- antd v6 注意：`Divider` 的 `orientation` 现在只接受 `horizontal / vertical`（旧的
+  `left/center/right` 已移除）。
 
 ```bash
 cd owner-web
 npm install
 npm run dev          # http://localhost:5273
-npm run build        # 输出 dist/
+npm run build        # tsc --noEmit && vite build，输出 dist/
 npm run typecheck    # 仅类型检查
 ```
 

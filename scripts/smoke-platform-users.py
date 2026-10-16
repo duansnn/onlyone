@@ -1,10 +1,11 @@
 """平台超管用户管理冒烟测试（PRD §12）。"""
+import os
 import json
 import time
 import urllib.error
 import urllib.request
 
-BASE = "http://127.0.0.1:41452"
+BASE = os.environ.get("MALL_BASE", "http://127.0.0.1:41452")
 PASS, FAIL = [], []
 SUF = f"{int(time.time()) % 100000000:08d}"
 MOBILE = "136" + SUF

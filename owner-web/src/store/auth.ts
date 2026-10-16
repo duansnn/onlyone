@@ -1,43 +1,56 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { SysUser } from '@/types/api';
+import type { AuthUser, LoginResult, ShopBrief } from '@/types/mall';
 
 interface AuthState {
   token: string | null;
-  /** 雪花 ID，按字符串保存避免精度丢失 */
-  userId: string | null;
-  username: string | null;
-  nickname: string | null;
-  loginAt: number | null;
-  /** 登录成功后写入；payload 为后端返回的门户用户 */
-  signIn: (user: SysUser, token: string) => void;
-  /** 个人信息修改成功后同步昵称显示 */
-  setNickname: (nickname: string) => void;
+  user: AuthUser | null;
+  /** 当前账号在各店铺里的身份（决定是否能看到店铺后台） */
+  shops: ShopBrief[];
+  /** 店铺后台当前操作的店铺 */
+  currentShopId: string | null;
+  signedInAt: number | null;
+  signIn: (result: LoginResult, user: AuthUser) => void;
+  setUser: (user: AuthUser) => void;
+  setShops: (shops: ShopBrief[]) => void;
+  setCurrentShop: (shopId: string) => void;
   signOut: () => void;
-  isAuthenticated: () => boolean;
 }
 
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
       token: null,
-      userId: null,
-      username: null,
-      nickname: null,
-      loginAt: null,
-      signIn: (user, token) =>
+      user: null,
+      shops: [],
+      currentShopId: null,
+      signedInAt: null,
+      signIn: (result, user) =>
         set({
-          token,
-          userId: user.id,
-          username: user.username,
-          nickname: user.nickname,
-          loginAt: Date.now(),
+          token: result.token,
+          user,
+          shops: result.shops ?? [],
+          currentShopId: result.shops?.[0]?.shopId ?? null,
+          signedInAt: Date.now(),
         }),
-      setNickname: (nickname) => set({ nickname }),
+      setUser: (user) => set({ user }),
+      setShops: (shops) =>
+        set({ shops, currentShopId: get().currentShopId ?? shops[0]?.shopId ?? null }),
+      setCurrentShop: (shopId) => set({ currentShopId: shopId }),
       signOut: () =>
-        set({ token: null, userId: null, username: null, nickname: null, loginAt: null }),
-      isAuthenticated: () => Boolean(get().token),
+        set({ token: null, user: null, shops: [], currentShopId: null, signedInAt: null }),
     }),
-    { name: 'owner-portal-auth' },
+    { name: 'owner-mall-auth' },
   ),
 );
+
+/** 是否拥有任一店铺身份 */
+export function hasShopRole(shops: ShopBrief[]): boolean {
+  return shops.length > 0;
+}
+
+/** 是否是该店铺的店主（OWNER 才能改店铺资料/店员） */
+export function isShopOwner(shops: ShopBrief[], shopId: string | null): boolean {
+  if (!shopId) return false;
+  return shops.some((s) => s.shopId === shopId && s.role === 'OWNER');
+}

@@ -76,8 +76,8 @@ export function post<T>(url: string, data?: unknown, params?: object): Promise<T
   return service.post(url, data, { params }) as unknown as Promise<T>;
 }
 
-export function put<T>(url: string, data?: unknown): Promise<T> {
-  return service.put(url, data) as unknown as Promise<T>;
+export function put<T>(url: string, data?: unknown, params?: object): Promise<T> {
+  return service.put(url, data, { params }) as unknown as Promise<T>;
 }
 
 export function del<T>(url: string, config?: AxiosRequestConfig): Promise<T> {

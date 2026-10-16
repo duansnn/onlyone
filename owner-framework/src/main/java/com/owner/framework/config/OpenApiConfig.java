@@ -31,13 +31,13 @@ public class OpenApiConfig {
     private String applicationVersion;
 
     @Bean
-    public OpenAPI portalOpenAPI() {
+    public OpenAPI mallOpenAPI() {
         return new OpenAPI()
                 .info(new Info()
-                        .title("Owner IntelliPortal 接口文档")
-                        .description("企业级智能门户后端 API，应用名：" + applicationName)
+                        .title("日用铺电商系统 接口文档")
+                        .description("Owner 电商后端 API，应用名：" + applicationName)
                         .version(applicationVersion)
-                        .contact(new Contact().name("Owner IntelliPortal Team"))
+                        .contact(new Contact().name("Owner Team"))
                         .license(new License().name("Apache 2.0")))
                 .addSecurityItem(new SecurityRequirement().addList(SECURITY_SCHEME_NAME))
                 .components(new Components().addSecuritySchemes(SECURITY_SCHEME_NAME,

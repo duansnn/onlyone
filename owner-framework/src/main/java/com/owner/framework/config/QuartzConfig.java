@@ -1,13 +1,6 @@
 package com.owner.framework.config;
 
-import com.owner.framework.quartz.PortalHeartbeatJob;
 import lombok.extern.slf4j.Slf4j;
-import org.quartz.CronScheduleBuilder;
-import org.quartz.JobBuilder;
-import org.quartz.JobDetail;
-import org.quartz.Trigger;
-import org.quartz.TriggerBuilder;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.quartz.autoconfigure.SchedulerFactoryBeanCustomizer;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
@@ -19,6 +12,8 @@ import javax.sql.DataSource;
  * Quartz 定时任务配置。
  * <p>任务存储使用 JDBC JobStore（{@code spring.quartz.job-store-type=jdbc}），
  * 表结构见 {@code sql/init.sql} 中的 QRTZ_* 表。</p>
+ * <p>本类只负责把数据源交给 Quartz；具体业务任务由各业务模块自行注册，
+ * 例如电商的 {@code MallQuartzConfig}（订单超时取消、自动完成）。</p>
  */
 @Slf4j
 @Configuration(proxyBeanMethods = false)
@@ -47,33 +42,5 @@ public class QuartzConfig {
                 log.error("[Quartz] 未找到可用的数据源，JDBC JobStore 将无法工作");
             }
         };
-    }
-
-    /**
-     * 示例任务：门户心跳统计，默认每分钟执行一次。
-     * 关闭方式：{@code owner.quartz.heartbeat.enabled=false}
-     */
-    @Bean
-    @ConditionalOnProperty(prefix = "owner.quartz.heartbeat", name = "enabled",
-            havingValue = "true", matchIfMissing = true)
-    public JobDetail portalHeartbeatJobDetail() {
-        return JobBuilder.newJob(PortalHeartbeatJob.class)
-                .withIdentity("portalHeartbeatJob", "owner")
-                .withDescription("门户心跳统计任务")
-                .storeDurably()
-                .build();
-    }
-
-    @Bean
-    @ConditionalOnProperty(prefix = "owner.quartz.heartbeat", name = "enabled",
-            havingValue = "true", matchIfMissing = true)
-    public Trigger portalHeartbeatTrigger(JobDetail portalHeartbeatJobDetail) {
-        return TriggerBuilder.newTrigger()
-                .withIdentity("portalHeartbeatTrigger", "owner")
-                .forJob(portalHeartbeatJobDetail)
-                .withDescription("门户心跳统计触发器：每分钟一次")
-                .withSchedule(CronScheduleBuilder.cronSchedule("0 * * * * ?")
-                        .withMisfireHandlingInstructionDoNothing())
-                .build();
     }
 }

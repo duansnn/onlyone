@@ -22,8 +22,19 @@ spring:
     jdbc:
       initialize-schema: always
 
-# 本地不启动 RocketMQ / Kafka / RabbitMQ：
-# 不配置 rocketmq.name-server，RocketMQ Spring 的自动配置会整体跳过
+# ----------------------------------------------------------------------
+# 本地联调开关
+# 注意：这些只在 local profile 生效，别把 mock-enabled 带到生产
+# ----------------------------------------------------------------------
+owner:
+  mall:
+    pay:
+      # 打开模拟支付，才能把「待付款 → 发货 → 收货 → 售后 → 评价」走完整；
+      # 模拟付款同样要过金额校验与幂等入账，只是把平台回调换成本地通知
+      mock-enabled: ${OWNER_PAY_MOCK_ENABLED:true}
+    sms:
+      # 未接短信通道，把验证码直接回给前端，方便改手机号
+      expose-code: ${OWNER_SMS_EXPOSE_CODE:true}
 
 logging:
   level:

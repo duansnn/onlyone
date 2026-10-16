@@ -9,9 +9,9 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 
 /**
- * Owner IntelliPortal 启动类。
+ * Owner Mall（日用铺电商系统）启动类。
  *
- * @author Owner IntelliPortal Team
+ * @author Owner Team
  */
 @Slf4j
 @SpringBootApplication(scanBasePackages = "com.owner")

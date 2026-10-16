@@ -1,6 +1,6 @@
 # ======================================================================
-#  Owner IntelliPortal 一键启动：
-#  MySQL 8.0 + Redis 7 + RocketMQ 5 + 应用（owner-server:41452）
+#  Owner 日用铺电商系统 一键启动：
+#  MySQL 8.0 + Redis 7 + 应用（owner-server:41452）+ 前端（owner-web:8080）
 #  使用：docker compose up -d --build
 # ======================================================================
 name: owner
@@ -28,6 +28,7 @@ services:
       - mysql-data:/var/lib/mysql
       # 首次启动自动执行建库建表脚本
       - ./sql/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+      - ./sql/mall.sql:/docker-entrypoint-initdb.d/02-mall.sql:ro
     healthcheck:
       test: [ "CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-p${MYSQL_ROOT_PASSWORD:-change-me}" ]
       interval: 10s
@@ -64,43 +65,6 @@ services:
       retries: 10
     networks: [ owner-net ]
 
-  # ------------------------------------------------------- RocketMQ NameSrv
-  rocketmq-namesrv:
-    image: apache/rocketmq:5.3.1
-    container_name: owner-rocketmq-namesrv
-    restart: unless-stopped
-    environment:
-      TZ: Asia/Shanghai
-      JAVA_OPT_EXT: "-Xms256m -Xmx256m -Xmn128m"
-    command: sh mqnamesrv
-    ports:
-      - "9876:9876"
-    volumes:
-      - rocketmq-namesrv-logs:/home/rocketmq/logs
-    networks: [ owner-net ]
-
-  # --------------------------------------------------------- RocketMQ Broker
-  rocketmq-broker:
-    image: apache/rocketmq:5.3.1
-    container_name: owner-rocketmq-broker
-    restart: unless-stopped
-    depends_on:
-      rocketmq-namesrv:
-        condition: service_started
-    environment:
-      TZ: Asia/Shanghai
-      NAMESRV_ADDR: rocketmq-namesrv:9876
-      JAVA_OPT_EXT: "-Xms512m -Xmx512m -Xmn256m"
-    command: sh mqbroker -c /home/rocketmq/conf/broker.conf
-    ports:
-      - "10909:10909"
-      - "10911:10911"
-    volumes:
-      - ./docker/rocketmq/broker.conf:/home/rocketmq/conf/broker.conf:ro
-      - rocketmq-broker-store:/home/rocketmq/store
-      - rocketmq-broker-logs:/home/rocketmq/logs
-    networks: [ owner-net ]
-
   # ------------------------------------------------------------ 应用服务
   owner-server:
     build:
@@ -114,8 +78,6 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      rocketmq-broker:
-        condition: service_started
     environment:
       TZ: Asia/Shanghai
       SPRING_PROFILES_ACTIVE: docker
@@ -135,18 +97,23 @@ services:
       REDIS_PASSWORD: ${REDIS_PASSWORD:-change-me}
       OWNER_DRUID_MONITOR_USERNAME: ${OWNER_DRUID_MONITOR_USERNAME:-admin}
       OWNER_DRUID_MONITOR_PASSWORD: ${OWNER_DRUID_MONITOR_PASSWORD:-change-me}
-      ROCKETMQ_NAME_SERVER: rocketmq-namesrv:9876
-      ROCKETMQ_PRODUCER_GROUP: owner-producer
-      # 如需启用 AI，请填入真实密钥
-      OPENAI_API_KEY: ${OPENAI_API_KEY:-sk-not-configured}
+      # 登录令牌密钥：生产务必设置
+      OWNER_JWT_SECRET: ${OWNER_JWT_SECRET:-owner-mall-dev-secret-please-override-in-production}
+      # 支付通道：未接微信/支付宝商户号时保持 false，订单停在待付款
+      OWNER_PAY_MOCK_ENABLED: ${OWNER_PAY_MOCK_ENABLED:-false}
+      # 短信通道：未接入时验证码只写日志
+      OWNER_SMS_EXPOSE_CODE: ${OWNER_SMS_EXPOSE_CODE:-false}
+      # 首次启动补齐店主账号口令
+      OWNER_BOOTSTRAP_ADMIN_PASSWORD: ${OWNER_BOOTSTRAP_ADMIN_PASSWORD:-koko@2026}
+      OWNER_BOOTSTRAP_OWNER_PASSWORD: ${OWNER_BOOTSTRAP_OWNER_PASSWORD:-shop123}
     ports:
       - "41452:41452"
     volumes:
       - app-logs:/app/logs
     networks: [ owner-net ]
 
-  # ------------------------------------------------------------ 门户前端
-  # Nginx 托管 owner-web 构建产物，并把 /api、/ws 反代到 owner-server:41452
+  # ------------------------------------------------------------ 前端
+  # Nginx 托管 owner-web 构建产物，并把 /api 反代到 owner-server:41452
   owner-web:
     build:
       context: ./owner-web
@@ -166,9 +133,6 @@ services:
 volumes:
   mysql-data:
   redis-data:
-  rocketmq-namesrv-logs:
-  rocketmq-broker-store:
-  rocketmq-broker-logs:
   app-logs:
 
 networks:

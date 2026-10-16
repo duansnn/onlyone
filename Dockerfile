@@ -1,5 +1,5 @@
 # ======================================================================
-#  Owner IntelliPortal 镜像构建
+#  Owner Mall · 日用铺电商系统 镜像构建
 #  运行镜像：eclipse-temurin:25-jre
 #  堆参数  ：-Xms512m -Xmx512m    时区：Asia/Shanghai
 # ======================================================================
@@ -39,8 +39,8 @@ RUN mvn -B -ntp clean package -DskipTests
 # ---------------------------- 运行阶段 ----------------------------
 FROM eclipse-temurin:25-jre
 
-LABEL maintainer="Owner IntelliPortal Team" \
-      description="Owner IntelliPortal Server"
+LABEL maintainer="Owner Team" \
+      description="Owner Mall Server（日用铺电商系统）"
 
 ENV TZ=Asia/Shanghai \
     LANG=C.UTF-8 \

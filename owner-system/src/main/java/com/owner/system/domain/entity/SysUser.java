@@ -14,7 +14,9 @@ import java.io.Serializable;
 import java.time.LocalDateTime;
 
 /**
- * 门户用户。
+ * 系统用户。
+ * <p>全站唯一账号体系：顾客、店主、店员、平台超管都是这一张表，
+ * 具体身份由 {@code platform_admin} 与 {@code shop_member} 决定。</p>
  */
 @Data
 @TableName("sys_user")
@@ -39,7 +41,16 @@ public class SysUser implements Serializable {
     /** 邮箱 */
     private String email;
 
-    /** 所属部门 */
+    /** BCrypt 密码散列 */
+    private String passwordHash;
+
+    /** 平台超级管理员：0 否，1 是（koko 为 1） */
+    private Integer platformAdmin;
+
+    /** 头像 */
+    private String avatarUrl;
+
+    /** 所属部门（电商权限不再使用，字段保留） */
     private String deptName;
 
     /** 状态：0 正常，1 停用 */

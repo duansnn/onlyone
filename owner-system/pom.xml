@@ -12,7 +12,7 @@
 
     <artifactId>owner-system</artifactId>
     <name>owner-system</name>
-    <description>系统业务模块：门户用户的增删改查示例</description>
+    <description>业务模块：日用铺电商系统（认证、店铺、商品、购物车、订单、支付、售后、评价、优惠券）</description>
 
     <dependencies>
         <dependency>

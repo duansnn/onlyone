@@ -43,22 +43,4 @@ public interface Constants {
 
     /** Redis Key 前缀 */
     String REDIS_PREFIX = "owner:";
-
-    /** WebSocket 会话缓存前缀 */
-    String WS_SESSION_PREFIX = REDIS_PREFIX + "ws:session:";
-
-    /** WebSocket 广播频道 */
-    String WS_BROADCAST_CHANNEL = "owner:ws:broadcast";
-
-    /** WebSocket 广播 RocketMQ Topic */
-    String WS_ROCKETMQ_TOPIC = "OWNER_WEBSOCKET_BROADCAST";
-
-    /** WebSocket 广播 Kafka Topic */
-    String WS_KAFKA_TOPIC = "owner-websocket-broadcast";
-
-    /** WebSocket 广播 RabbitMQ Exchange */
-    String WS_RABBITMQ_EXCHANGE = "owner.websocket.broadcast";
-
-    /** WebSocket 广播 RabbitMQ Queue */
-    String WS_RABBITMQ_QUEUE = "owner.websocket.broadcast.queue";
 }

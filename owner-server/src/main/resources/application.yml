@@ -1,6 +1,6 @@
 # ======================================================================
-#  Owner IntelliPortal 公共配置
-#  Spring Boot 4.1.0 / JDK 25 / Spring AI 2.0.0
+#  Owner 日用铺电商系统 —— 公共配置
+#  Spring Boot 4.1.0 / JDK 25
 # ======================================================================
 server:
   port: 41452
@@ -105,7 +105,8 @@ spring:
           none-base-statement-allow: true
 
   # ------------------------------------------------------------------
-  # 缓存：Spring Cache = REDIS，分布式能力由 Redisson 4.6.1 提供
+  # 缓存：Spring Cache = REDIS
+  # 序列化用 Spring Data Redis 自带的 Jackson 3 实现（GenericJacksonJsonRedisSerializer）
   # ------------------------------------------------------------------
   cache:
     type: redis
@@ -236,9 +237,45 @@ owner:
     max-size: 32
     queue-capacity: 1000
     keep-alive-seconds: 60
-  quartz:
-    heartbeat:
+
+  # ------------------------------------------------------------------
+  #  登录令牌（自实现 HS256 JWT）
+  # ------------------------------------------------------------------
+  auth:
+    jwt:
+      # 生产环境务必用环境变量 OWNER_JWT_SECRET 覆盖；不设置时用内置开发密钥并打 WARN
+      secret: ${OWNER_JWT_SECRET:owner-mall-dev-secret-please-override-in-production}
+      # 默认 7 天；退出登录会把当前 jti 拉黑，令牌随即失效
+      expire-seconds: ${OWNER_JWT_EXPIRE_SECONDS:604800}
+
+  # ------------------------------------------------------------------
+  #  电商（日用铺）
+  # ------------------------------------------------------------------
+  mall:
+    # 首次启动补齐：koko 的平台管理员密码、店主账号、「日用铺」店铺、五个一级类目
+    bootstrap:
       enabled: true
+      admin-password: ${OWNER_BOOTSTRAP_ADMIN_PASSWORD:koko@2026}
+      shop-name: 日用铺
+      # 售后退货默认用这个地址，店主应在「店铺资料」里改成真实发货地址
+      ship-address: ${OWNER_BOOTSTRAP_SHIP_ADDRESS:广东省深圳市南山区科技园 1 号 101 室（示例地址，请店主改成真实发货地址）}
+      owner-username: ${OWNER_BOOTSTRAP_OWNER_USERNAME:shopadmin}
+      owner-password: ${OWNER_BOOTSTRAP_OWNER_PASSWORD:shop123}
+      owner-mobile: ${OWNER_BOOTSTRAP_OWNER_MOBILE:13800000001}
+    sms:
+      # 未接短信通道，验证码只写日志。true 时把验证码随响应返回给前端，仅供本地联调，生产必须 false
+      expose-code: false
+    pay:
+      # 没有微信/支付宝商户号时为 false：支付页显示「支付未开通」，订单停在待付款，
+      # 不提供「我已付款」按钮；退款同样不会假装成功。本地联调可临时打开。
+      mock-enabled: ${OWNER_PAY_MOCK_ENABLED:false}
+    order:
+      # 每分钟扫描待付款超过 30 分钟的订单，取消并释放库存
+      timeout-job:
+        enabled: true
+      # 每天 02:10 把发货满 7 天的待收货订单改为已完成
+      auto-finish-job:
+        enabled: true
 
 # ======================================================================
 #  Actuator
@@ -273,5 +310,4 @@ logging:
   level:
     root: info
     com.owner: debug
-    org.springframework.web.socket: info
     com.baomidou.dynamic.datasource: info

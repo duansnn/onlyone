@@ -1,4 +1,4 @@
-# Owner IntelliPortal 项目长期约定
+# Owner Mall（日用铺电商系统）项目长期约定
 
 ## 基本信息
 - 工作区：`D:/code/onlyone`
@@ -10,41 +10,48 @@
 
 ## 命名约定（2026-10-14 全量重命名）
 - 历史上所有 `mt*` 前缀已统一改为 `owner`，**不要**再引入 `mtl` / `mtlntelliportal` / `MTL` 等旧前缀
-- 模块 `owner-*`；包 `com.owner.*`；配置前缀 `owner.*`（websocket/druid/quartz/thread-pool/web）
-- 常量前缀 `OWNER_`（如 `OWNER_WEBSOCKET_BROADCAST`）；线程名前缀 `owner-async-` / `owner-scheduling-`
-- 容器/网络：`owner-mysql` / `owner-redis` / `owner-rocketmq-*` / `owner-net`；数据库 `owner`
+- 模块 `owner-*`；包 `com.owner.*`；配置前缀 `owner.*`（auth/mall/druid/thread-pool/web/app）
+- 常量前缀 `OWNER_`；线程名前缀 `owner-async-` / `owner-scheduling-`
+- 容器/网络：`owner-mysql` / `owner-redis` / `owner-server` / `owner-web` / `owner-net`；数据库 `owner`
 - 口令统一 `owner@2026`（Docker 的 MySQL/Redis 与 Druid 监控台）
-- 品牌名统一写作 **Owner IntelliPortal**（README 标题、前端 title/登录页/侧边栏/页脚）
+- 品牌名统一写作 **Owner Mall**，中文全称「日用铺电商系统」。
+  2026-10-16 起 **`Owner IntelliPortal` 已废弃**，除 `scripts/rename-to-owner.py`
+  （迁移记录）与尚未重做的 `owner-web/` 外不应再出现
 - 启动 banner：`owner-server/src/main/resources/banner.txt`，大字用 figlet `standard` 字体写 **OWNER**，
-  副标题行 `:: Owner IntelliPortal ::` + 右侧 `Spring Boot ${...}`
+  副标题 `:: Owner Mall · 日用铺 ::` + 右侧 `Spring Boot ${...}`。
+  **注意 CJK 是双宽**，改写副标题后要按显示列数重算中间空格，否则右侧不对齐
 - **改名/替换后的残留复查必须全量扫描，不要用扩展名白名单**：
   ```bash
   grep -rniE "<旧词>" . --exclude-dir=node_modules --exclude-dir=target \
     --exclude-dir=dist --exclude-dir=.git --binary-files=without-match
   ```
   上次只扫了 `*.java/xml/yml/md/sql/ts/json/conf/sh`，漏掉 **`banner.txt`**（`.txt` 不在白名单），
-  误报"零残留"，被用户在启动日志里一眼看出来。
-  `scripts/rename-to-owner.py` 里保留旧词是正确的（它是迁移记录，不该改）
+  误报"零残留"，被用户在启动日志里一眼看出来
 
 ## 技术约定
 - 统一响应：`com.owner.common.core.domain.R<T>`；分页 `PageResult` / `PageQuery`
 - 业务异常统一抛 `ServiceException`，由 `GlobalExceptionHandler` 转 `R.fail`
 - JSON 统一用 `JsonUtils`（Jackson 3 / `tools.jackson`），不要再引 Jackson 2 的 databind
-- Redis 缓存用 `GenericJacksonJsonRedisSerializer` + `enableDefaultTyping`，缓存名 `sysUser`
-- 新增/修改表结构时同步更新 `sql/init.sql`（含 QRTZ_* 表）
-- 业务代码放 `owner-system`，`controller / service / mapper / domain(entity,dto,vo) / convert(MapStruct)`
+- Redis 缓存用 `GenericJacksonJsonRedisSerializer`；**Redis 客户端是 Lettuce**
+  （2026-10-16 已删掉 `redisson-spring-boot-starter`，它此前悄悄接管了 `RedisConnectionFactory`）
+- 新增/修改表结构时同步更新 `sql/init.sql`（含 QRTZ_* 表）与 `sql/mall.sql`
+- 业务代码放 `owner-system`：框架级公用能力在 `com.owner.system.{domain.entity,mapper}`，
+  电商业务全部在 `com.owner.system.mall` 下按 `controller / service / mapper / domain(entity,dto,vo,enums) / support / config / job` 分层
+- **依赖只留真正用到的**：项目已无 WebSocket / AI / RocketMQ / Kafka / RabbitMQ / Redisson。
+  加依赖前先 grep 确认有引用，别把上一版能力再带回来
 
 ## 前端约定（owner-web）
-- 目录：`api`（request/portal/user/auth）、`hooks`、`layout`、`pages`、`router`、`store`、`types`、`utils`
+- **2026-10-16 状态：仍是旧门户（Login / Dashboard / UserManage / NotFound），与电商系统不匹配，
+  用户明确要求「前端先不动」，整体重做时再参考本节**
+- 重做时要做的：店面前台（首页/类目/搜索/详情/购物车/结算/订单/售后/评价/领券）、
+  店铺后台、平台后台
+- 技术栈：React 19 + Vite + TS + antd 6 + React Router 7 + Zustand 5 + Axios
 - `src/api/request.ts` 的响应拦截器负责拆包 `R`，业务代码直接拿 `data`
 - antd v6 用 `App.useApp()` 取 message，经 `src/utils/feedback.ts` 桥接给非组件模块
-- 开发期由 Vite 代理 `/api`、`/actuator`、`/v3/api-docs`、`/doc.html`、`/ws` 到 41452
-- 登录无真实认证接口，`src/api/auth.ts` 复用 `sys_user` 分页查询校验账号（密码不校验）
-- `SysUserVO` 已补 `version` 字段，供前端「编辑」回传以走乐观锁
+- 开发期由 Vite 代理 `/api`、`/actuator`、`/v3/api-docs`、`/doc.html` 到 41452
 - **雪花 ID 一律用 `string`**：后端主键为 MyBatis-Plus `IdType.ASSIGN_ID`，19 位整数
   超出 JS `Number.MAX_SAFE_INTEGER`（16 位）。后端由 `owner-framework/config/JacksonConfig`
-  注册 `Long -> String` 序列化器，前端 `SysUser.id` / `SysUserUpdatePayload.id`
-  及 `getUserById/removeUser/pushWelcome` 签名全部为 `string`。
+  注册 `Long -> String` 序列化器。
   区分：包装类型 `Long` 序列化为字符串，基本类型 `long`（`PageResult.total`、`R.timestamp`）仍是数字
 - **测试脚本坑**：Git Bash 不认 `D:/...` 形式的 PATH 项，调 java 必须用绝对路径
   `/d/soft/.../bin/java.exe`（否则命中 Oracle javapath 的 Java 17，报 UnsupportedClassVersionError）
@@ -60,10 +67,27 @@
 - Quartz 不要指定 `org.quartz.jobStore.class`，用 Spring 默认 `LocalDataSourceJobStore`
 - Lombok / MapStruct 在根 POM 的 `<dependencies>` 中声明，子模块不再单独声明
 
+## 日用铺电商系统（com.owner.system.mall）
+- **项目已整体切换为电商**：PRD = `docs/电商系统规划.md`，是唯一的需求来源，改代码前先读它
+- 只有两种长期实体：**用户**和**店铺**。商户不是第三套账号，管哪家店由 `shop_member` 决定
+- 金额一律 **分（Long 整数）**；雪花 ID 一律序列化成**字符串**；逻辑删除 `del_flag`
+- 店铺数据一律带 `shop_id`；每个店铺接口先取登录态再查 `shop_member`（`ShopGuard`）
+- 防超卖用**带条件的原子 UPDATE**（`ProductSkuMapper`），可售 = `stock - locked_stock`
+- **支付与退款都必须经 `PaymentGateway`**，通道未开通时返回 false 并回滚，
+  绝不假装成功（没有「我已付款」按钮，也不会「钱没退却显示已退款」）
+- 售后按**整单**；申请时的订单原状态记在 `order_log`（`to_status=REFUNDING` 那条的
+  `from_status`），拒绝时反查恢复，**不要**给 refund 表加字段
+- 启动引导 `MallDataInitializer` 自动建 koko / shopadmin / 「日用铺」/ 5 组两级类目（共 20 个）
+- 启动冒烟脚本在 **`scripts/`**（不在 .workbuddy/tmp）：`smoke-mall.py`（61 项）、
+  `smoke-platform-users.py`（13 项），可重复跑。
+  **后端必须用 Bash 的 `run_in_background=true` 起**，否则 shell 返回即被回收
+- 打包产物是 `owner-server.jar`（无版本号后缀）
+- 前端未迁移；README（2026-10-16 重写）与接口清单是新建前端时的第一手参考
+
 ## 本地运行环境（本机）
 - MySQL 8.0：`localhost:3306`，root / `9999`，库 `owner`（旧库 `mtlntelliportal` 已废弃）
 - Redis：`localhost:6379`，**无密码**（配置中不要出现 `spring.data.redis.password`）
-- 无 Docker、无 RocketMQ（本地 profile 通过不配置 `rocketmq.name-server` 关闭其自动配置）
+- 无 Docker；项目已无 RocketMQ / Kafka / RabbitMQ / WebSocket / AI 依赖（2026-10-16 清理）
 - shell 中存在环境变量 `SERVER__PORT`，会覆盖 `server.port`，启动时需显式 `--server.port=41452`
   （或 `unset SERVER__PORT`；另有 `SERVER__HOST`，会映射到 `server.address`）
 - shell 中预设了透明代理 `http_proxy/https_proxy=http://127.0.0.1:64304`，会让 curl 访问

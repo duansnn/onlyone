@@ -1,7 +1,9 @@
 -- ======================================================================
---  Owner IntelliPortal 初始化脚本
+--  Owner Mall（日用铺电商系统）初始化脚本
 --  数据库：MySQL 8.x
---  用途  ：业务表（sys_user）+ Quartz JDBC JobStore 表（QRTZ_*）
+--  用途  ：全站账号表（sys_user）+ Quartz JDBC JobStore 表（QRTZ_*）
+--  说明  ：电商业务表（shop / product / order_info ...）见 sql/mall.sql，
+--          需在本文件之后执行。
 -- ======================================================================
 
 CREATE DATABASE IF NOT EXISTS `owner`
@@ -11,33 +13,41 @@ CREATE DATABASE IF NOT EXISTS `owner`
 USE `owner`;
 
 -- ----------------------------------------------------------------------
--- 门户用户（MyBatis-Plus 示例表：逻辑删除 + 乐观锁 + 自动填充）
+-- 全站账号表：顾客 / 店主 / 店员 / 平台超管共用一个账号体系
+-- 身份由 platform_admin 与 shop_member 决定，不另建商户表
+-- 逻辑删除 + 乐观锁 + 自动填充
 -- ----------------------------------------------------------------------
 DROP TABLE IF EXISTS `sys_user`;
 CREATE TABLE `sys_user`
 (
-    `id`          BIGINT       NOT NULL COMMENT '主键（雪花算法）',
-    `username`    VARCHAR(32)  NOT NULL COMMENT '登录账号',
-    `nickname`    VARCHAR(32)  NOT NULL COMMENT '昵称',
-    `mobile`      VARCHAR(20)           DEFAULT NULL COMMENT '手机号',
-    `email`       VARCHAR(64)           DEFAULT NULL COMMENT '邮箱',
-    `dept_name`   VARCHAR(64)           DEFAULT NULL COMMENT '所属部门',
-    `status`      TINYINT      NOT NULL DEFAULT 0 COMMENT '状态：0 正常，1 停用',
-    `remark`      VARCHAR(255)          DEFAULT NULL COMMENT '备注',
-    `del_flag`    TINYINT      NOT NULL DEFAULT 0 COMMENT '逻辑删除：0 未删除，1 已删除',
-    `version`     INT          NOT NULL DEFAULT 0 COMMENT '版本号（乐观锁）',
-    `create_time` DATETIME              DEFAULT NULL COMMENT '创建时间',
-    `update_time` DATETIME              DEFAULT NULL COMMENT '更新时间',
+    `id`             BIGINT       NOT NULL COMMENT '主键（雪花算法）',
+    `username`       VARCHAR(32)  NOT NULL COMMENT '登录账号',
+    `nickname`       VARCHAR(32)  NOT NULL COMMENT '昵称',
+    `mobile`         VARCHAR(20)           DEFAULT NULL COMMENT '手机号',
+    `email`          VARCHAR(64)           DEFAULT NULL COMMENT '邮箱',
+    `password_hash`  VARCHAR(100)          DEFAULT NULL COMMENT 'BCrypt 密码',
+    `platform_admin` TINYINT      NOT NULL DEFAULT 0 COMMENT '平台超级管理员：0 否 1 是（koko 为 1）',
+    `avatar_url`     VARCHAR(255)          DEFAULT NULL COMMENT '头像',
+    `dept_name`      VARCHAR(64)           DEFAULT NULL COMMENT '所属部门（电商权限不再使用）',
+    `status`         TINYINT      NOT NULL DEFAULT 0 COMMENT '状态：0 正常，1 停用',
+    `remark`         VARCHAR(255)          DEFAULT NULL COMMENT '备注',
+    `del_flag`       TINYINT      NOT NULL DEFAULT 0 COMMENT '逻辑删除：0 未删除，1 已删除',
+    `version`        INT          NOT NULL DEFAULT 0 COMMENT '版本号（乐观锁）',
+    `create_time`    DATETIME              DEFAULT NULL COMMENT '创建时间',
+    `update_time`    DATETIME              DEFAULT NULL COMMENT '更新时间',
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_sys_user_username` (`username`),
+    UNIQUE KEY `uk_sys_user_mobile` (`mobile`),
     KEY `idx_sys_user_dept` (`dept_name`),
     KEY `idx_sys_user_status` (`status`)
 ) ENGINE = InnoDB
-  DEFAULT CHARSET = utf8mb4 COMMENT ='门户用户';
+  DEFAULT CHARSET = utf8mb4 COMMENT ='全站账号';
 
-INSERT INTO `sys_user` (`id`, `username`, `nickname`, `mobile`, `email`, `dept_name`, `status`, `remark`, `del_flag`,
-                        `version`, `create_time`, `update_time`)
-VALUES (1001, 'koko', '超级管理员', NULL, NULL, NULL, 0, '超级管理员', 0, 0, NOW(), NOW());
+-- koko 的密码由应用启动引导（MallDataInitializer）写入 BCrypt 值，
+-- 默认口令见 owner.mall.bootstrap.admin-password（默认 koko@2026）。
+INSERT INTO `sys_user` (`id`, `username`, `nickname`, `mobile`, `email`, `platform_admin`, `dept_name`, `status`, `remark`,
+                        `del_flag`, `version`, `create_time`, `update_time`)
+VALUES (1001, 'koko', '超级管理员', NULL, NULL, 1, NULL, 0, '平台超级管理员', 0, 0, NOW(), NOW());
 
 -- ======================================================================
 --  Quartz 2.3.x JDBC JobStore 表结构（MySQL InnoDB）

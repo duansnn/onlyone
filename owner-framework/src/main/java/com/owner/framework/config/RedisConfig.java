@@ -22,7 +22,6 @@ import java.util.Arrays;
  * Redis 配置：Spring Cache 使用 REDIS 实现（{@code spring.cache.type=redis}）。
  * <p>序列化采用 Spring Data Redis 4 的 Jackson 3 实现
  * （{@link GenericJacksonJsonRedisSerializer}），与 Spring Boot 4 默认 JSON 栈保持一致。</p>
- * <p>分布式锁等能力由 Redisson 提供。</p>
  */
 @Configuration(proxyBeanMethods = false)
 @EnableCaching

@@ -1,6 +1,6 @@
 # ======================================================================
 #  容器环境（docker-compose 使用）
-#  MySQL / Redis / RocketMQ 均为 compose 中的服务名
+#  MySQL / Redis 均为 compose 中的服务名
 # ======================================================================
 spring:
   datasource:
@@ -20,12 +20,17 @@ spring:
     jdbc:
       initialize-schema: never
 
-rocketmq:
-  name-server: ${ROCKETMQ_NAME_SERVER:rocketmq-namesrv:9876}
-  producer:
-    group: ${ROCKETMQ_PRODUCER_GROUP:owner-producer}
-    send-message-timeout: 3000
-    retry-times-when-send-failed: 2
+# ----------------------------------------------------------------------
+# 电商开关：容器环境保持与生产一致的保守默认值
+#  - 支付未接商户号 -> mock-enabled 必须为 false，订单停在待付款，绝不假装成功
+#  - 短信未接通道   -> 验证码只写日志，不回显给前端
+# ----------------------------------------------------------------------
+owner:
+  mall:
+    pay:
+      mock-enabled: ${OWNER_PAY_MOCK_ENABLED:false}
+    sms:
+      expose-code: ${OWNER_SMS_EXPOSE_CODE:false}
 
 logging:
   level:

@@ -12,7 +12,7 @@
 
     <artifactId>owner-framework</artifactId>
     <name>owner-framework</name>
-    <description>框架模块：数据源、ORM、缓存、消息、WebSocket、接口文档、定时任务、AI</description>
+    <description>框架模块：数据源、ORM、缓存、接口文档、定时任务、全局异常</description>
 
     <dependencies>
         <dependency>
@@ -39,7 +39,7 @@
             <artifactId>aspectjweaver</artifactId>
         </dependency>
 
-        <!-- 缓存：Spring Cache + Redis + Redisson -->
+        <!-- 缓存：Spring Cache + Redis（序列化用 Spring Data Redis 的 Jackson 3 实现） -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-cache</artifactId>
@@ -47,10 +47,6 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-redis</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.redisson</groupId>
-            <artifactId>redisson-spring-boot-starter</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
@@ -94,20 +90,6 @@
             <artifactId>spring-boot-starter-quartz</artifactId>
         </dependency>
 
-        <!-- 消息：RocketMQ / Kafka / RabbitMQ（WebSocket 发送方式可切换） -->
-        <dependency>
-            <groupId>org.apache.rocketmq</groupId>
-            <artifactId>rocketmq-spring-boot-starter</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.kafka</groupId>
-            <artifactId>spring-kafka</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-amqp</artifactId>
-        </dependency>
-
         <!-- 接口文档：Knife4j + springdoc -->
         <dependency>
             <groupId>com.github.xiaoymin</groupId>
@@ -133,6 +115,15 @@
         <dependency>
             <groupId>org.mapstruct</groupId>
             <artifactId>mapstruct</artifactId>
+        </dependency>
+
+        <!--
+          仅使用 BCrypt 口令编码（BCryptPasswordEncoder），不引入 Spring Security
+          的自动配置，因此不会带来过滤器链与登录页。版本由 Spring Boot BOM 管理。
+        -->
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-crypto</artifactId>
         </dependency>
 
         <!-- 测试 -->

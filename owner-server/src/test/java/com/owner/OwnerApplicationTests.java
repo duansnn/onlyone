@@ -6,8 +6,6 @@ import com.owner.common.core.domain.R;
 import com.owner.common.core.exception.ServiceException;
 import com.owner.common.core.utils.JsonUtils;
 import com.owner.common.core.utils.StringUtils;
-import com.owner.framework.websocket.WebSocketMessage;
-import com.owner.framework.websocket.WebSocketSendMode;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -59,23 +57,9 @@ class OwnerApplicationTests {
         assertEquals("user_name", StringUtils.toUnderlineCase("userName"));
         assertEquals("138****0000", StringUtils.maskMobile("13800000000"));
 
-        WebSocketMessage message = WebSocketMessage.broadcast("notice", "{\"a\":1}");
-        String json = JsonUtils.toJson(message);
+        String json = JsonUtils.toJson(java.util.Map.of("type", "notice"));
         assertNotNull(json);
-        WebSocketMessage parsed = JsonUtils.parse(json, WebSocketMessage.class);
-        assertNotNull(parsed);
-        assertEquals("notice", parsed.getType());
-    }
-
-    @Test
-    @DisplayName("WebSocket 发送方式可解析，默认 local")
-    void testWebSocketSendMode() {
-        assertEquals(WebSocketSendMode.LOCAL, WebSocketSendMode.fromValue(null));
-        assertEquals(WebSocketSendMode.LOCAL, WebSocketSendMode.fromValue("unknown"));
-        assertEquals(WebSocketSendMode.REDIS, WebSocketSendMode.fromValue("REDIS"));
-        assertEquals(WebSocketSendMode.ROCKETMQ, WebSocketSendMode.fromValue(" rocketmq "));
-        assertEquals(WebSocketSendMode.KAFKA, WebSocketSendMode.fromValue("kafka"));
-        assertEquals(WebSocketSendMode.RABBITMQ, WebSocketSendMode.fromValue("rabbitmq"));
+        assertTrue(json.contains("notice"));
     }
 
     @Test

@@ -43,11 +43,9 @@ public class OwnerApplication {
                           External     : http://{}:{}{}
                           Knife4j 文档 : http://localhost:{}{}/doc.html
                           Druid 监控   : http://localhost:{}{}/druid/
-                          WebSocket    : ws://localhost:{}{}/ws/portal?clientId=demo
                         ----------------------------------------------------------""",
                 appName, profiles.isEmpty() ? "default" : profiles,
                 port, contextPath, host, port, contextPath,
-                port, contextPath, port, contextPath,
-                port, contextPath);
+                port, contextPath, port, contextPath);
     }
 }

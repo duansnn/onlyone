@@ -27,7 +27,4 @@ public interface ISysUserService extends IService<SysUser> {
 
     /** 删除（逻辑删除） */
     void removeUser(Long id);
-
-    /** 发送欢迎 WebSocket 消息 */
-    void pushWelcome(Long userId);
 }

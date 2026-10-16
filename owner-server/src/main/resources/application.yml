@@ -162,20 +162,6 @@ spring:
       org.quartz.threadPool.class: org.quartz.simpl.SimpleThreadPool
       org.quartz.threadPool.threadCount: 10
 
-  # ------------------------------------------------------------------
-  # AI：Spring AI 2.0.0（OpenAI 兼容端点）
-  # 通义千问：OPENAI_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode  OPENAI_MODEL=qwen-plus
-  # DeepSeek：OPENAI_BASE_URL=https://api.deepseek.com                      OPENAI_MODEL=deepseek-chat
-  # ------------------------------------------------------------------
-  ai:
-    openai:
-      api-key: ${OPENAI_API_KEY:sk-not-configured}
-      base-url: ${OPENAI_BASE_URL:https://api.openai.com}
-      chat:
-        options:
-          model: ${OPENAI_MODEL:gpt-4o-mini}
-          temperature: 0.7
-
 # ======================================================================
 #  ORM：MyBatis 3.5.19 + MyBatis-Plus 3.5.16
 # ======================================================================
@@ -237,24 +223,9 @@ knife4j:
 owner:
   app:
     version: 2026.03-SNAPSHOT
-  # ------------------------------------------------------------------
-  # 任务看板（PRD：AI 轻量化任务看板）
-  # ------------------------------------------------------------------
-  kanban:
-    jwt:
-      # HS256 签名密钥，生产环境务必通过环境变量覆盖（至少 32 字节随机串）
-      secret: ${OWNER_KANBAN_JWT_SECRET:owner-kanban-jwt-secret-change-me-in-production}
-      # 令牌有效期（小时）
-      expire-hours: ${OWNER_KANBAN_JWT_EXPIRE_HOURS:72}
   web:
     cors:
       allowed-origins: "*"
-  websocket:
-    path: /ws/portal
-    # 发送方式：local（默认） / redis / rocketmq / kafka / rabbitmq
-    send-mode: local
-    allowed-origins: "*"
-    send-buffer-size-limit: 524288
   druid:
     monitor:
       enabled: true

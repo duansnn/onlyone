@@ -1,27 +1,7 @@
-import { get, post } from '@/api/request';
-import type { PortalInfo, PortalOverview } from '@/types/api';
+import { get } from '@/api/request';
+import type { PortalOverview } from '@/types/api';
 
-/** 应用信息与运行状态 */
-export function fetchPortalInfo(): Promise<PortalInfo> {
-  return get<PortalInfo>('/portal/info');
-}
-
-/** 仪表盘总览：门户与看板核心指标 + 近 N 天任务趋势 */
+/** 仪表盘总览 */
 export function fetchPortalOverview(trendDays = 14): Promise<PortalOverview> {
   return get<PortalOverview>('/portal/overview', { trendDays });
-}
-
-/** 广播 WebSocket 消息（按 owner.websocket.send-mode 配置的方式发送） */
-export function broadcastMessage(content: string): Promise<{ sendMode: string; content: string }> {
-  return post<{ sendMode: string; content: string }>('/portal/websocket/broadcast', undefined, { content });
-}
-
-/** 定向推送 WebSocket 消息 */
-export function sendMessageToClient(clientId: string, content: string): Promise<void> {
-  return post<void>('/portal/websocket/send', undefined, { clientId, content });
-}
-
-/** AI 对话（Spring AI 2.0.0） */
-export function aiChat(prompt: string): Promise<string> {
-  return get<string>('/portal/ai/chat', { prompt });
 }

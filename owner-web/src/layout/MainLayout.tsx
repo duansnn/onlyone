@@ -3,15 +3,12 @@ import { App as AntdApp, Dropdown, Form, Input, Modal, Typography } from 'antd';
 import type { MenuProps } from 'antd';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
-  ApiOutlined,
   DashboardOutlined,
   EditOutlined,
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
-  RobotOutlined,
   TeamOutlined,
-  UserOutlined,
 } from '@ant-design/icons';
 import { getUserById, updateUser } from '@/api/user';
 import { useAuthStore } from '@/store/auth';
@@ -22,22 +19,16 @@ const { Text } = Typography;
 const MENU_KEY_TO_PATH: Record<string, string> = {
   dashboard: '/dashboard',
   users: '/users',
-  websocket: '/websocket',
-  ai: '/ai',
 };
 
 const PATH_META: Record<string, { title: string; hint: string }> = {
-  '/dashboard': { title: '仪表盘', hint: '服务、连接与 AI 的当前状态' },
-  '/users': { title: '用户管理', hint: '门户账号与状态' },
-  '/websocket': { title: 'WebSocket 演示', hint: '连接、在线列表与消息收发' },
-  '/ai': { title: 'AI 对话', hint: '基于 Spring AI 的门户助手' },
+  '/dashboard': { title: '工作台', hint: '生活日用品 · 国内小店' },
+  '/users': { title: '用户', hint: '门户账号' },
 };
 
 const PRIMARY_NAV = [
-  { key: 'dashboard', icon: <DashboardOutlined />, label: '仪表盘' },
-  { key: 'users', icon: <TeamOutlined />, label: '用户管理' },
-  { key: 'websocket', icon: <ApiOutlined />, label: 'WebSocket 演示' },
-  { key: 'ai', icon: <RobotOutlined />, label: 'AI 对话' },
+  { key: 'dashboard', icon: <DashboardOutlined />, label: '工作台' },
+  { key: 'users', icon: <TeamOutlined />, label: '用户' },
 ];
 
 export default function MainLayout() {
@@ -53,8 +44,8 @@ export default function MainLayout() {
   }, [location.pathname]);
 
   const page = PATH_META[location.pathname] ?? {
-    title: 'Owner IntelliPortal',
-    hint: '企业智能门户',
+    title: '日用铺',
+    hint: '生活日用品',
   };
 
   const openKey = (key: string) => {
@@ -144,10 +135,10 @@ export default function MainLayout() {
     <div className={`owner-shell${collapsed ? ' is-collapsed' : ''}`}>
       <aside className="owner-sider">
         <div className="owner-brand">
-          <span className="owner-brand__mark">O</span>
+          <span className="owner-brand__mark">日</span>
           <span className="owner-brand__text">
-            <span className="owner-brand__name">IntelliPortal</span>
-            <span className="owner-brand__sub">Owner</span>
+            <span className="owner-brand__name">日用铺</span>
+            <span className="owner-brand__sub">生活小商品</span>
           </span>
         </div>
 
@@ -208,9 +199,7 @@ export default function MainLayout() {
           <Outlet />
         </div>
 
-        <footer className="owner-footer">
-          Owner IntelliPortal · 2026.03-SNAPSHOT · Spring Boot 4.1.0 / JDK 25 / React 19
-        </footer>
+        <footer className="owner-footer">日用铺 · 生活日用品</footer>
 
         {/* 修改个人信息 */}
         <Modal

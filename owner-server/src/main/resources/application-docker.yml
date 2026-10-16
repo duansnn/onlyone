@@ -20,17 +20,12 @@ spring:
     jdbc:
       initialize-schema: never
 
-# WebSocket 多实例广播走 RocketMQ
 rocketmq:
   name-server: ${ROCKETMQ_NAME_SERVER:rocketmq-namesrv:9876}
   producer:
     group: ${ROCKETMQ_PRODUCER_GROUP:owner-producer}
     send-message-timeout: 3000
     retry-times-when-send-failed: 2
-
-owner:
-  websocket:
-    send-mode: rocketmq
 
 logging:
   level:

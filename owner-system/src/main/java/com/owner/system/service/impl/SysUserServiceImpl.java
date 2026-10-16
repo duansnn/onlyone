@@ -7,7 +7,6 @@ import com.owner.common.core.domain.PageResult;
 import com.owner.common.core.enums.ResultCode;
 import com.owner.common.core.exception.ServiceException;
 import com.owner.common.core.utils.StringUtils;
-import com.owner.framework.websocket.WebSocketBroadcastService;
 import com.owner.system.convert.SysUserConvert;
 import com.owner.system.domain.dto.SysUserCreateDTO;
 import com.owner.system.domain.dto.SysUserQuery;
@@ -23,9 +22,7 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * 门户用户服务实现。
@@ -38,7 +35,6 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
     private static final int STATUS_ENABLED = 0;
 
     private final SysUserConvert sysUserConvert;
-    private final WebSocketBroadcastService webSocketBroadcastService;
 
     @Override
     public PageResult<SysUserVO> pageUsers(SysUserQuery query) {
@@ -106,19 +102,6 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
             throw new ServiceException(ResultCode.DATA_NOT_FOUND, "用户不存在或已删除：" + id);
         }
         log.info("[SysUser] 删除用户成功 id={}", id);
-    }
-
-    @Override
-    public void pushWelcome(Long userId) {
-        SysUserVO user = getUserById(userId);
-        if (user == null) {
-            throw new ServiceException(ResultCode.DATA_NOT_FOUND, "用户不存在：" + userId);
-        }
-        Map<String, Object> data = new LinkedHashMap<>();
-        data.put("userId", user.getId());
-        data.put("nickname", user.getNickname());
-        data.put("welcome", "欢迎回到 Owner IntelliPortal！");
-        webSocketBroadcastService.broadcast(WebSocketBroadcastService.TYPE_NOTICE, data);
     }
 
     private void maskMobile(SysUserVO vo) {

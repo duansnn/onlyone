@@ -89,26 +89,9 @@ export interface SysUserUpdatePayload {
   version?: number;
 }
 
-/** 看板注册用户统计出参：KanbanUserStatVO */
-export interface KanbanUserStat {
-  /** 看板用户 ID（自增，Long->String 序列化） */
-  id: string;
-  username: string;
-  projectCount: number;
-  taskCount: number;
-  createTime?: string;
-}
-
 /** 仪表盘总览出参：PortalOverviewVO */
 export interface PortalOverview {
   portalUserCount: number;
-  kanbanUserCount: number;
-  projectCount: number;
-  taskCount: number;
-  todoCount: number;
-  doingCount: number;
-  doneCount: number;
-  overdueCount: number;
   trend: PortalTrendPoint[];
 }
 
@@ -118,27 +101,3 @@ export interface PortalTrendPoint {
   newCount: number;
   doneCount: number;
 }
-
-/** 运行状态：GET /api/portal/info */
-export interface PortalInfo {
-  applicationName: string;
-  port: number;
-  activeProfiles: string;
-  serverTime: string;
-  javaVersion: string;
-  websocketSendMode: string;
-  websocketOnlineCount: number;
-  websocketOnlineClients: string[];
-  quartzHeartbeatExecutions: number;
-  aiAvailable: boolean;
-}
-
-/** WebSocket 消息体：com.owner.framework.websocket.WebSocketMessage */
-export interface WsMessage {
-  type: string;
-  clientId?: string;
-  payload?: string;
-  timestamp?: number;
-}
-
-export type WsStatus = 'connecting' | 'open' | 'closed' | 'error';

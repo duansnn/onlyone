@@ -5,7 +5,7 @@ import react from '@vitejs/plugin-react';
 /**
  * Owner IntelliPortal 前端构建配置。
  *
- * 开发期通过代理把 /api、/actuator、/v3/api-docs、/ws 转发到后端 41452，
+ * 开发期通过代理把 /api、/actuator、/v3/api-docs 转发到后端 41452。
  * 因此浏览器侧与后端同源，无需处理跨域。
  */
 export default defineConfig(({ mode }) => {
@@ -20,7 +20,6 @@ export default defineConfig(({ mode }) => {
     '/v3/api-docs': { target: backend, changeOrigin: true },
     '/doc.html': { target: backend, changeOrigin: true },
     '/druid': { target: backend, changeOrigin: true },
-    '/ws': { target: backend, ws: true, changeOrigin: true },
   };
 
   return {

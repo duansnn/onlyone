@@ -7,8 +7,6 @@ import com.owner.system.domain.dto.SysUserCreateDTO;
 import com.owner.system.domain.dto.SysUserQuery;
 import com.owner.system.domain.dto.SysUserUpdateDTO;
 import com.owner.system.domain.vo.SysUserVO;
-import com.owner.system.kanban.domain.vo.KanbanUserStatVO;
-import com.owner.system.kanban.service.KanbanUserStatService;
 import com.owner.system.service.ISysUserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -26,9 +24,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
-import java.util.Map;
-
 /**
  * 门户用户接口。
  */
@@ -41,7 +36,6 @@ import java.util.Map;
 public class SysUserController {
 
     private final ISysUserService sysUserService;
-    private final KanbanUserStatService kanbanUserStatService;
 
     @Operation(summary = "分页查询门户用户")
     @GetMapping
@@ -76,48 +70,6 @@ public class SysUserController {
     @DeleteMapping("/{id}")
     public R<Void> remove(@Parameter(description = "用户ID") @PathVariable Long id) {
         sysUserService.removeUser(id);
-        return R.ok();
-    }
-
-    @Operation(summary = "向所有 WebSocket 客户端推送该用户的欢迎消息")
-    @PostMapping("/{id}/welcome")
-    public R<Void> pushWelcome(@Parameter(description = "用户ID") @PathVariable Long id) {
-        sysUserService.pushWelcome(id);
-        return R.ok();
-    }
-
-    @Operation(summary = "看板注册用户列表（只读）", description = "供门户查看看板侧注册的用户及其项目/任务数")
-    @GetMapping("/kanban")
-    public R<List<KanbanUserStatVO>> kanbanUsers() {
-        return R.ok(kanbanUserStatService.listAll());
-    }
-
-    @Operation(summary = "新增看板用户", description = "管理员直接创建看板账号，密码 BCrypt 加密")
-    @PostMapping("/kanban")
-    public R<Long> createKanbanUser(@RequestBody Map<String, String> body) {
-        String username = body.get("username");
-        String password = body.get("password");
-        if (username == null || username.isBlank() || password == null || password.isBlank()) {
-            return R.fail(ResultCode.BAD_REQUEST, "用户名和密码不能为空");
-        }
-        return R.ok(kanbanUserStatService.create(username.trim(), password));
-    }
-
-    @Operation(summary = "重置看板用户密码")
-    @PutMapping("/kanban/{id}/password")
-    public R<Void> resetKanbanPassword(@PathVariable Long id, @RequestBody Map<String, String> body) {
-        String password = body.get("password");
-        if (password == null || password.isBlank()) {
-            return R.fail(ResultCode.BAD_REQUEST, "新密码不能为空");
-        }
-        kanbanUserStatService.resetPassword(id, password);
-        return R.ok();
-    }
-
-    @Operation(summary = "删除看板用户", description = "级联删除该用户全部项目、任务与评论")
-    @DeleteMapping("/kanban/{id}")
-    public R<Void> deleteKanbanUser(@PathVariable Long id) {
-        kanbanUserStatService.delete(id);
         return R.ok();
     }
 }

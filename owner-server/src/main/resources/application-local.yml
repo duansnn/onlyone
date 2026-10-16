@@ -25,10 +25,6 @@ spring:
 # 本地不启动 RocketMQ / Kafka / RabbitMQ：
 # 不配置 rocketmq.name-server，RocketMQ Spring 的自动配置会整体跳过
 
-owner:
-  websocket:
-    send-mode: local
-
 logging:
   level:
     com.owner: debug

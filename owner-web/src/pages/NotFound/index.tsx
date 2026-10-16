@@ -9,11 +9,11 @@ export default function NotFound() {
       status="404"
       title="404"
       subTitle="抱歉，你访问的页面不存在。"
-      extra={
-        <Button type="primary" onClick={() => navigate('/dashboard', { replace: true })}>
-          返回仪表盘
-        </Button>
-      }
+        extra={
+          <Button type="primary" onClick={() => navigate('/dashboard', { replace: true })}>
+            回工作台
+          </Button>
+        }
     />
   );
 }

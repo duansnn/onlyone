@@ -6,6 +6,7 @@ import {
   Divider,
   Empty,
   Input,
+  Modal,
   Radio,
   Result,
   Skeleton,
@@ -13,20 +14,16 @@ import {
   Tag,
 } from 'antd';
 import { useNavigate } from 'react-router-dom';
-import { addressApi, orderApi, payApi } from '@/api/mall';
+import { addressApi, orderApi } from '@/api/mall';
+import SafeImage from '@/components/SafeImage';
 import { toast } from '@/utils/feedback';
-import { dt, money, num, PLACEHOLDER } from '@/utils/format';
-import type { Address, OrderPreview, OrderSubmitResult, PaymentCreate } from '@/types/mall';
+import { dt, money, num } from '@/utils/format';
+import type { Address, OrderPreview, OrderSubmitResult } from '@/types/mall';
 
 interface Payload {
   shopId: string;
   items: { skuId: string; quantity: number; price: number }[];
 }
-
-const CHANNELS = [
-  { value: 'WECHAT', label: '微信支付' },
-  { value: 'ALIPAY', label: '支付宝' },
-];
 
 export default function Checkout() {
   const navigate = useNavigate();
@@ -36,15 +33,15 @@ export default function Checkout() {
   });
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [addressId, setAddressId] = useState<string>('');
+  const [addressPickerOpen, setAddressPickerOpen] = useState(false);
+  /** 弹窗里的临时选择，点「确定」才写回 addressId */
+  const [pickedId, setPickedId] = useState<string>('');
   const [preview, setPreview] = useState<OrderPreview | null>(null);
   const [couponUserId, setCouponUserId] = useState<string | null>(null);
   const [remark, setRemark] = useState('');
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [channel, setChannel] = useState('WECHAT');
   const [created, setCreated] = useState<OrderSubmitResult | null>(null);
-  const [payment, setPayment] = useState<PaymentCreate | null>(null);
-  const [paying, setPaying] = useState(false);
 
   useEffect(() => {
     if (!payload) {
@@ -84,6 +81,22 @@ export default function Checkout() {
     })();
   }, [payload, loadPreview]);
 
+  const currentAddress = addresses.find((a) => String(a.id) === addressId);
+
+  const openAddressPicker = () => {
+    setPickedId(addressId);
+    setAddressPickerOpen(true);
+  };
+
+  const confirmAddress = () => {
+    if (!pickedId) {
+      toast.warning('请选择一个收货地址');
+      return;
+    }
+    setAddressId(pickedId);
+    setAddressPickerOpen(false);
+  };
+
   const onSelectCoupon = async (value: string | null) => {
     setCouponUserId(value);
     try {
@@ -121,34 +134,6 @@ export default function Checkout() {
     }
   };
 
-  const doPay = async () => {
-    if (!created) return;
-    setPaying(true);
-    try {
-      const result = await payApi.create(String(created.orderId), channel);
-      setPayment(result);
-      if (!result.payable) {
-        toast.warning(result.message || '支付通道未开通，订单已保留在待付款');
-      }
-    } catch {
-      /* 拦截器已提示 */
-    } finally {
-      setPaying(false);
-    }
-  };
-
-  /** 本地联调：等价于微信/支付宝支付成功后的异步回调 */
-  const mockNotify = async () => {
-    if (!created) return;
-    try {
-      await payApi.mockCallback(created.orderNo);
-      toast.success('支付成功');
-      navigate('/orders');
-    } catch {
-      /* 拦截器已提示 */
-    }
-  };
-
   if (!payload) return null;
 
   if (created) {
@@ -157,7 +142,7 @@ export default function Checkout() {
         <Result
           status="success"
           title="订单已提交"
-          subTitle={`订单号 ${created.orderNo} · 应付 ${money(created.payAmount)} · ${dt(created.expireTime)} 前未支付将自动取消`}
+          subTitle={`订单号 ${created.orderNo} · 应付 ${money(created.payAmount)} · 商家确认收款后安排发货`}
           extra={[
             <Button key="orders" onClick={() => navigate('/orders')}>
               查看我的订单
@@ -168,51 +153,12 @@ export default function Checkout() {
         <Divider />
 
         <div style={{ maxWidth: 420, margin: '0 auto' }}>
-          <div className="mall-card__meta" style={{ marginBottom: 8 }}>
-            支付方式
-          </div>
-          <Radio.Group
-            value={channel}
-            options={CHANNELS}
-            optionType="button"
-            buttonStyle="solid"
-            onChange={(e) => setChannel(e.target.value)}
+          <Alert
+            type="info"
+            showIcon
+            message="暂未接入在线支付"
+            description="系统当前不提供微信支付 / 支付宝收款，你无需在页面上付款。商家确认收款后会安排发货，进度可在「我的订单」里查看。"
           />
-          <div style={{ marginTop: 16 }}>
-            <Button type="primary" block loading={paying} onClick={() => void doPay()}>
-              发起支付（{money(created.payAmount)}）
-            </Button>
-          </div>
-
-          {payment && (
-            <Alert
-              style={{ marginTop: 16 }}
-              type={payment.payable ? 'success' : 'warning'}
-              showIcon
-              message={payment.payable ? `已创建支付单（${payment.channelLabel}）` : '支付通道未开通'}
-              description={
-                payment.payable
-                  ? `商户单号 ${payment.outTradeNo ?? '-'}。真实环境请按通道返回的支付参数在客户端唤起收银台。`
-                  : payment.message ||
-                    '未配置商户号，订单会留在待付款状态。系统不会假装收款成功，也不提供“我已付款”按钮。'
-              }
-            />
-          )}
-
-          {payment?.payable && (
-            <Alert
-              style={{ marginTop: 12 }}
-              type="info"
-              showIcon
-              message="本地联调"
-              description="下面这个按钮直接调用后端的模拟回调接口，等价于真实通道支付成功后的通知，仅在开发环境建议使用。"
-              action={
-                <Button size="small" onClick={() => void mockNotify()}>
-                  模拟支付成功
-                </Button>
-              }
-            />
-          )}
         </div>
       </Card>
     );
@@ -233,33 +179,82 @@ export default function Checkout() {
           </Empty>
         </Card>
       ) : (
-        <Card title="收货地址" style={{ marginBottom: 16 }}>
-          <Radio.Group
-            style={{ width: '100%' }}
-            value={addressId}
-            onChange={(e) => setAddressId(e.target.value)}
-          >
-            <Space direction="vertical" style={{ width: '100%' }}>
-              {addresses.map((a) => (
-                <Radio key={a.id} value={String(a.id)}>
-                  <Space size={8}>
-                    <strong>{a.receiver}</strong>
-                    <span>{a.mobile}</span>
-                    <span className="mall-card__meta">{a.fullAddress}</span>
-                    {a.isDefault === 1 && <Tag color="blue">默认</Tag>}
-                  </Space>
-                </Radio>
-              ))}
-            </Space>
-          </Radio.Group>
+        <Card
+          title="收货地址"
+          style={{ marginBottom: 16 }}
+          extra={
+            <Button size="small" onClick={openAddressPicker}>
+              切换地址
+            </Button>
+          }
+        >
+          {currentAddress ? (
+            <div className="mall-address-current">
+              <Space size={8} wrap>
+                <strong>{currentAddress.receiver}</strong>
+                <span>{currentAddress.mobile}</span>
+                {currentAddress.isDefault === 1 && <Tag color="blue">默认</Tag>}
+              </Space>
+              <div className="mall-card__meta" style={{ marginTop: 4 }}>
+                {currentAddress.fullAddress}
+              </div>
+            </div>
+          ) : (
+            <div className="mall-card__meta">尚未选择收货地址</div>
+          )}
         </Card>
       )}
+
+      <Modal
+        open={addressPickerOpen}
+        title="选择收货地址"
+        onCancel={() => setAddressPickerOpen(false)}
+        onOk={confirmAddress}
+        okText="使用该地址"
+        width={560}
+        destroyOnHidden
+      >
+        <Radio.Group
+          style={{ width: '100%', maxHeight: 380, overflowY: 'auto', paddingRight: 4 }}
+          value={pickedId}
+          onChange={(e) => setPickedId(e.target.value)}
+        >
+          <Space direction="vertical" size={4} style={{ width: '100%' }}>
+            {addresses.map((a) => (
+              <div
+                key={a.id}
+                className={`mall-address-option${String(a.id) === pickedId ? ' is-active' : ''}`}
+                onClick={() => setPickedId(String(a.id))}
+              >
+                <Radio value={String(a.id)}>
+                  <Space size={8} wrap>
+                    <strong>{a.receiver}</strong>
+                    <span>{a.mobile}</span>
+                    {a.isDefault === 1 && <Tag color="blue">默认</Tag>}
+                  </Space>
+                  <div className="mall-card__meta" style={{ marginTop: 2 }}>
+                    {a.fullAddress}
+                  </div>
+                </Radio>
+              </div>
+            ))}
+          </Space>
+        </Radio.Group>
+
+        <Button
+          type="link"
+          style={{ paddingLeft: 0, marginTop: 8 }}
+          onClick={() => navigate('/account?tab=address')}
+        >
+          + 新增 / 管理收货地址
+        </Button>
+      </Modal>
 
       <Card title={preview?.shopName ?? '商品清单'} style={{ marginBottom: 16 }}>
         {(preview?.items ?? []).map((item) => (
           <div key={item.skuId} style={{ display: 'flex', gap: 12, alignItems: 'center', padding: '8px 0' }}>
-            <img
-              src={item.imageUrl || PLACEHOLDER}
+            <SafeImage
+              src={item.imageUrl}
               alt=""
               style={{ width: 56, height: 56, borderRadius: 10, objectFit: 'cover', background: '#f5f5f5' }}
             />

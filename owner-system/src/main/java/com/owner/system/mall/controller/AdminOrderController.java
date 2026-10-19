@@ -7,6 +7,7 @@ import com.owner.system.mall.domain.dto.ShipDTO;
 import com.owner.system.mall.domain.vo.OrderDetailVO;
 import com.owner.system.mall.domain.vo.OrderVO;
 import com.owner.system.mall.service.OrderService;
+import com.owner.system.mall.service.PaymentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -33,6 +34,7 @@ import java.util.List;
 public class AdminOrderController {
 
     private final OrderService orderService;
+    private final PaymentService paymentService;
 
     @Operation(summary = "订单分页", description = "可按状态、订单号、收件人手机、下单日期筛选；列表里手机号打星")
     @GetMapping
@@ -57,6 +59,13 @@ public class AdminOrderController {
     @GetMapping("/{orderId}")
     public R<OrderDetailVO> detail(@PathVariable Long shopId, @PathVariable Long orderId) {
         return R.ok(orderService.shopOrderDetail(shopId, orderId));
+    }
+
+    @Operation(summary = "确认收款（线下）", description = "商家线下收到钱后点一下，订单转待发货；系统不接入在线支付")
+    @PostMapping("/{orderId}/confirm-payment")
+    public R<Void> confirmPayment(@PathVariable Long shopId, @PathVariable Long orderId) {
+        paymentService.markPaidOffline(shopId, orderId);
+        return R.ok();
     }
 
     @Operation(summary = "发货", description = "待发货订单填快递公司与运单号；有未处理售后时先处理售后")

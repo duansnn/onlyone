@@ -10,12 +10,10 @@ import com.owner.system.mall.domain.enums.OperatorType;
 import com.owner.system.mall.domain.enums.OrderStatus;
 import com.owner.system.mall.domain.enums.PayChannel;
 import com.owner.system.mall.domain.enums.PayStatus;
-import com.owner.system.mall.domain.vo.PaymentCreateVO;
 import com.owner.system.mall.mapper.OrderItemMapper;
 import com.owner.system.mall.mapper.PaymentMapper;
 import com.owner.system.mall.support.MallCurrentUser;
-import com.owner.system.mall.support.PaymentGateway;
-import com.owner.system.mall.support.PaymentNotify;
+import com.owner.system.mall.support.ShopGuard;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -26,10 +24,19 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * 支付服务。
+ * 收款与退款记账服务。
  *
- * <p>金额由服务端从订单读取，不接受前端传入；以支付平台的异步通知为准入账；
- * 同一订单重复通知只入账一次；金额不一致、订单已取消、订单已支付都会被拒绝并记录原因。</p>
+ * <p><b>本项目不接入任何在线支付通道</b>（没有微信支付的 SDK / 商户号 / 证书，也没有支付宝），
+ * 顾客端没有任何支付入口。交易按「线下收款」处理：</p>
+ *
+ * <ul>
+ *   <li>下单 → 订单停在 {@code PENDING_PAYMENT}（待确认），库存锁定、优惠券预占；</li>
+ *   <li>商家线下收到钱（现金 / 转账 / 到付），在店铺后台点「确认收款」→ 本类的
+ *       {@link #markPaidOffline} 把订单转 {@code PENDING_SHIPMENT}，锁定库存转扣减、优惠券核销；</li>
+ *   <li>退款同理，由商家线下退回后点「同意退款」，见 {@code RefundService}。</li>
+ * </ul>
+ *
+ * <p>系统不会伪造任何「支付成功」，也没有「我已付款」按钮 —— 钱到没到只由商家确认。</p>
  */
 @Slf4j
 @Service
@@ -40,139 +47,64 @@ public class PaymentService {
 
     private final PaymentMapper paymentMapper;
     private final OrderItemMapper orderItemMapper;
-    private final PaymentGateway paymentGateway;
     private final OrderService orderService;
     private final StockService stockService;
     private final CouponService couponService;
+    private final ShopGuard shopGuard;
 
-    /** 顾客在待付款订单发起支付 */
+    /**
+     * 商家后台确认收到钱（线下收款：现金 / 转账 / 到付）。
+     *
+     * <p>没有任何在线通道参与：订单是否收到钱由商家在店铺后台确认。记账效果与真实支付成功一致 ——
+     * 写一条成功支付单（渠道 {@code OFFLINE}）、锁定库存转扣减、优惠券核销、订单转待发货，并留一条状态记录。</p>
+     */
     @Transactional(rollbackFor = Exception.class)
-    public PaymentCreateVO create(Long orderId, String channelCode) {
-        Long userId = MallCurrentUser.requireUserId();
-        PayChannel channel = PayChannel.of(channelCode);
-        if (channel == null) {
-            throw new ServiceException(ResultCode.BAD_REQUEST, "支付方式只能是 WECHAT 或 ALIPAY");
-        }
+    public void markPaidOffline(Long shopId, Long orderId) {
+        shopGuard.requireMember(shopId);
+        Long operatorId = MallCurrentUser.requireUserId();
         OrderInfo order = orderService.requireOrder(orderId);
-        if (!userId.equals(order.getUserId())) {
+        if (!shopId.equals(order.getShopId())) {
             throw new ServiceException(ResultCode.DATA_NOT_FOUND, "订单不存在");
         }
         if (!OrderStatus.PENDING_PAYMENT.name().equals(order.getStatus())) {
-            throw new ServiceException(ResultCode.BUSINESS_ERROR, "订单当前状态不能支付");
-        }
-        if (order.getExpireTime() != null && order.getExpireTime().isBefore(LocalDateTime.now())) {
-            throw new ServiceException(ResultCode.BUSINESS_ERROR, "订单已超时，请重新下单");
+            throw new ServiceException(ResultCode.BUSINESS_ERROR, "只有待确认的订单可以确认收款");
         }
 
         long amount = order.getPayAmount() == null ? 0L : order.getPayAmount();
-        if (!paymentGateway.isEnabled(channel)) {
-            log.info("[Pay] 订单 {} 发起 {} 支付，但通道未开通", order.getOrderNo(), channel);
-            return new PaymentCreateVO(order.getId(), order.getOrderNo(), amount,
-                    channel.name(), channel.getLabel(), false, null, null,
-                    "支付未开通，订单已保留在待付款");
-        }
+        LocalDateTime now = LocalDateTime.now();
+        String platformNo = "OFFLINE" + System.currentTimeMillis();
 
-        Payment payment = paymentMapper.selectOne(Wrappers.<Payment>lambdaQuery()
-                .eq(Payment::getOrderId, orderId)
-                .eq(Payment::getChannel, channel.name())
-                .eq(Payment::getStatus, PayStatus.PENDING.name())
-                .orderByDesc(Payment::getId)
-                .last("LIMIT 1"));
-        if (payment == null) {
-            payment = new Payment();
-            payment.setOrderId(orderId);
-            payment.setShopId(order.getShopId());
-            payment.setChannel(channel.name());
-            payment.setAmount(amount);
-            payment.setOutTradeNo(generateOutTradeNo(order.getOrderNo()));
-            payment.setStatus(PayStatus.PENDING.name());
-            paymentMapper.insert(payment);
-        }
-        String payload = paymentGateway.prepay(payment, "订单 " + order.getOrderNo());
-        return new PaymentCreateVO(order.getId(), order.getOrderNo(), amount, channel.name(),
-                channel.getLabel(), true, payment.getOutTradeNo(), payload, null);
-    }
-
-    /**
-     * 处理支付平台的异步通知。
-     *
-     * @return true 表示已受理（平台可以停止重试）
-     */
-    @Transactional(rollbackFor = Exception.class)
-    public boolean handleNotify(PayChannel channel, String body) {
-        PaymentNotify notify = paymentGateway.parseNotify(channel, body);
-        if (notify == null) {
-            log.warn("[Pay] {} 通知验签或解析失败，已忽略", channel);
-            return false;
-        }
-        Payment payment = paymentMapper.selectOne(Wrappers.<Payment>lambdaQuery()
-                .eq(Payment::getOutTradeNo, notify.outTradeNo())
-                .last("LIMIT 1"));
-        if (payment == null) {
-            log.warn("[Pay] 通知的商户单号不存在：{}", notify.outTradeNo());
-            return false;
-        }
-
-        // 幂等：已成功的支付单不再入账
-        if (PayStatus.SUCCESS.name().equals(payment.getStatus())) {
-            payment.setNotifyBody(notify.rawBody());
-            paymentMapper.updateById(payment);
-            log.info("[Pay] 重复通知，已忽略 outTradeNo={}", notify.outTradeNo());
-            return true;
-        }
-
-        OrderInfo order = orderService.requireOrder(payment.getOrderId());
-        long orderPayAmount = order.getPayAmount() == null ? 0L : order.getPayAmount();
-
-        String reject = null;
-        if (OrderStatus.CANCELLED.name().equals(order.getStatus())) {
-            reject = "订单已取消";
-        } else if (!OrderStatus.PENDING_PAYMENT.name().equals(order.getStatus())) {
-            reject = "订单不是待付款状态：" + order.getStatus();
-        } else if (!notify.success()) {
-            reject = "平台判定支付失败";
-        } else if (notify.amount() != orderPayAmount) {
-            reject = "金额不一致：通知 " + notify.amount() + " 分，订单应付 " + orderPayAmount + " 分";
-        }
-
-        if (reject != null) {
-            payment.setStatus(PayStatus.FAILED.name());
-            payment.setFailReason(reject);
-            payment.setNotifyBody(notify.rawBody());
-            paymentMapper.updateById(payment);
-            log.warn("[Pay] 拒绝入账 outTradeNo={}，原因：{}", notify.outTradeNo(), reject);
-            return false;
-        }
-
+        Payment payment = new Payment();
+        payment.setOrderId(orderId);
+        payment.setShopId(shopId);
+        payment.setChannel(PayChannel.OFFLINE.name());
+        payment.setAmount(amount);
+        payment.setOutTradeNo(generateOutTradeNo(order.getOrderNo()));
+        payment.setPlatformTradeNo(platformNo);
         payment.setStatus(PayStatus.SUCCESS.name());
-        payment.setPlatformTradeNo(notify.platformTradeNo());
-        payment.setNotifyBody(notify.rawBody());
-        paymentMapper.update(payment, Wrappers.<Payment>lambdaUpdate()
-                .eq(Payment::getId, payment.getId())
-                .set(Payment::getFailReason, null));
+        payment.setNotifyBody("线下收款，由店铺后台确认，操作人 " + operatorId);
+        paymentMapper.insert(payment);
 
         String from = order.getStatus();
         order.setStatus(OrderStatus.PENDING_SHIPMENT.name());
-        order.setPayChannel(channel.name());
-        order.setPayNo(notify.platformTradeNo());
-        order.setPayTime(LocalDateTime.now());
-        order.setPaidAmount(notify.amount());
+        order.setPayChannel(PayChannel.OFFLINE.name());
+        order.setPayNo(platformNo);
+        order.setPayTime(now);
+        order.setPaidAmount(amount);
         orderService.saveOrder(order);
 
         // 锁定转扣减
         List<OrderItem> items = orderItemMapper.selectList(Wrappers.<OrderItem>lambdaQuery()
-                .eq(OrderItem::getOrderId, order.getId()));
+                .eq(OrderItem::getOrderId, orderId));
         for (OrderItem item : items) {
-            stockService.confirmPaid(order.getShopId(), item.getSkuId(), item.getQuantity(),
-                    order.getId(), null);
+            stockService.confirmPaid(shopId, item.getSkuId(), item.getQuantity(), orderId, operatorId);
         }
-        couponService.useByOrder(order.getId());
-        orderService.writeLog(order.getId(), from, OrderStatus.PENDING_SHIPMENT.name(), null,
-                OperatorType.SYSTEM, "支付成功（" + channel.getLabel() + "）");
+        couponService.useByOrder(orderId);
+        orderService.writeLog(orderId, from, OrderStatus.PENDING_SHIPMENT.name(), operatorId,
+                OperatorType.SHOP, "商家确认收款（线下收款 " + amount / 100.0 + " 元）");
 
-        log.info("[Pay] 入账成功 orderNo={}, outTradeNo={}, amount={}分",
-                order.getOrderNo(), notify.outTradeNo(), notify.amount());
-        return true;
+        log.info("[Pay] 线下收款确认 orderNo={}, amount={}分, 操作人={}",
+                order.getOrderNo(), amount, operatorId);
     }
 
     private String generateOutTradeNo(String orderNo) {

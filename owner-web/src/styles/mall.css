@@ -235,6 +235,230 @@
   justify-content: space-between;
 }
 
+.admin-header__left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.admin-header__menu {
+  margin-left: -6px;
+}
+
 .admin-content {
   padding: 20px;
+}
+
+/* ---------------- 后台：窄屏（手机）适配 ---------------- */
+
+@media (max-width: 767px) {
+  .admin-header {
+    height: 52px;
+    line-height: 52px;
+    padding: 0 12px;
+    gap: 8px;
+  }
+
+  .admin-header__left {
+    gap: 8px;
+  }
+
+  /* 抽屉里的菜单不用再挤 */
+  .admin-shell .ant-drawer-body .ant-menu-inline .ant-menu-item {
+    height: 44px;
+    line-height: 44px;
+    margin-inline: 8px;
+    width: calc(100% - 16px);
+  }
+
+  .admin-content {
+    padding: 12px;
+  }
+
+  /* 看板卡片：字号收小，避免「今日订单」被压成竖排 */
+  .admin-shell .ant-statistic-title {
+    font-size: 13px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 4px;
+  }
+
+  .admin-shell .ant-statistic-content {
+    font-size: 21px;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .admin-shell .ant-statistic-content-suffix {
+    font-size: 13px;
+    margin-inline-start: 2px;
+  }
+
+  .admin-shell .ant-card-body {
+    padding: 14px;
+  }
+
+  .admin-shell .ant-card-head {
+    padding: 0 14px;
+    min-height: 44px;
+  }
+
+  .admin-shell .ant-card-head-title {
+    font-size: 14px;
+  }
+
+  .admin-shell .mall-section-title {
+    font-size: 17px;
+    margin: 4px 0 12px;
+  }
+
+  /* 筛选表单：手机上每项占一整行，控件撑满，避免 RangePicker 把卡片撑破 */
+  .admin-shell .ant-form-inline {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .admin-shell .ant-form-inline .ant-form-item {
+    width: 100%;
+    margin-inline-end: 0;
+  }
+
+  /* 查询/重置这类按钮行并排，别各占一整行 */
+  .admin-shell .ant-form-inline .ant-form-item:has(.ant-btn) {
+    width: auto;
+    flex: 1 1 0;
+  }
+
+  .admin-shell .ant-form-inline .ant-form-item-control {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .admin-shell .ant-form-inline .ant-input,
+  .admin-shell .ant-form-inline .ant-picker,
+  .admin-shell .ant-form-inline .ant-select {
+    width: 100% !important;
+  }
+
+  /* 表格页：允许横向滑动，不硬压列 */
+  .admin-shell .ant-table-wrapper {
+    overflow-x: auto;
+  }
+
+  .admin-shell .ant-pagination {
+    justify-content: center;
+  }
+}
+
+/* ---------------------------- 图片上传 ---------------------------- */
+
+.mall-uploader__grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.mall-uploader__item {
+  position: relative;
+  width: 96px;
+  height: 96px;
+  border: 1px solid #eee;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #f5f5f5;
+}
+
+.mall-uploader__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.mall-uploader__badge {
+  position: absolute;
+  left: 0;
+  top: 0;
+  padding: 1px 6px;
+  font-size: 11px;
+  color: #fff;
+  background: rgba(17, 17, 17, 0.72);
+  border-bottom-right-radius: 8px;
+}
+
+.mall-uploader__ops {
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  display: flex;
+  padding: 0 2px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.mall-uploader__add {
+  width: 96px;
+  height: 96px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: #8c8c8c;
+  background: #fafafa;
+  border: 1px dashed #d9d9d9;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.mall-uploader__add:hover {
+  color: #111;
+  border-color: #111;
+}
+
+.mall-uploader__tip {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #999;
+}
+
+/* --------------------------- 收货地址切换 --------------------------- */
+
+.mall-address-current {
+  padding: 2px 0;
+}
+
+.mall-address-option {
+  padding: 10px 12px;
+  border: 1px solid #eee;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.mall-address-option:hover {
+  border-color: #bbb;
+}
+
+.mall-address-option.is-active {
+  border-color: #111;
+  background: #fafafa;
+}
+
+.mall-address-option .ant-radio-wrapper {
+  width: 100%;
+  align-items: flex-start;
+}
+
+.mall-address-option .ant-radio {
+  margin-top: 3px;
 }

@@ -3,9 +3,9 @@ import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 
 /**
- * Owner IntelliPortal 前端构建配置。
+ * Owner Mall 前端构建配置。
  *
- * 开发期通过代理把 /api、/actuator、/v3/api-docs 转发到后端 41452。
+ * 开发期通过代理把 /api、/actuator、/v3/api-docs、/files 转发到后端 41452。
  * 因此浏览器侧与后端同源，无需处理跨域。
  */
 export default defineConfig(({ mode }) => {
@@ -16,6 +16,8 @@ export default defineConfig(({ mode }) => {
   // 开发服务器与 preview 使用同一套代理规则
   const proxy = {
     '/api': { target: backend, changeOrigin: true },
+    // 商品图片等本地上传文件的访问路径（后端静态映射 /files/**）
+    '/files': { target: backend, changeOrigin: true },
     '/actuator': { target: backend, changeOrigin: true },
     '/v3/api-docs': { target: backend, changeOrigin: true },
     '/doc.html': { target: backend, changeOrigin: true },

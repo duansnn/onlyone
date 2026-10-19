@@ -23,6 +23,7 @@ import com.owner.system.mall.domain.entity.Shop;
 import com.owner.system.mall.domain.entity.UserAddress;
 import com.owner.system.mall.domain.enums.OperatorType;
 import com.owner.system.mall.domain.enums.OrderStatus;
+import com.owner.system.mall.domain.enums.PayChannel;
 import com.owner.system.mall.domain.enums.ProductStatus;
 import com.owner.system.mall.domain.enums.RefundStatus;
 import com.owner.system.mall.domain.vo.CartItemVO;
@@ -698,7 +699,6 @@ public class OrderService {
                 order.getShipCompany(), order.getShipNo(), order.getCancelReason(),
                 order.getCreateTime(), order.getPayTime(), order.getShipTime(),
                 order.getFinishTime(), order.getCancelTime(), order.getExpireTime(),
-                unpaid && !isExpiredUnpaid(order),
                 unpaid,
                 status == OrderStatus.PENDING_RECEIPT,
                 status == OrderStatus.FINISHED && !reviewed,
@@ -716,10 +716,6 @@ public class OrderService {
                     && order.getFinishTime().plusDays(REFUND_WINDOW_DAYS).isAfter(LocalDateTime.now());
             default -> false;
         };
-    }
-
-    private boolean isExpiredUnpaid(OrderInfo order) {
-        return order.getExpireTime() != null && order.getExpireTime().isBefore(LocalDateTime.now());
     }
 
     private OrderDetailVO toDetailVo(OrderInfo order) {
@@ -759,9 +755,15 @@ public class OrderService {
                 .last("LIMIT 1"));
 
         return new OrderDetailVO(summary, order.getReceiverName(), order.getReceiverMobile(),
-                order.getReceiverAddress(), order.getBuyerRemark(), order.getPayChannel(),
+                order.getReceiverAddress(), order.getBuyerRemark(), payChannelLabel(order.getPayChannel()),
                 order.getPayNo(), order.getPaidAmount(), itemVos, logVos,
                 RefundVos.toVo(refund, order.getOrderNo(), shop == null ? null : shop.getName()));
+    }
+
+    /** 收款渠道编码转中文，前端直接展示，避免出现 OFFLINE 这种原始值 */
+    private String payChannelLabel(String code) {
+        PayChannel channel = PayChannel.of(code);
+        return channel == null ? code : channel.getLabel();
     }
 
     private OperatorType operatorTypeOf(String code) {

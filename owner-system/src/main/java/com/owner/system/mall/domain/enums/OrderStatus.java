@@ -8,8 +8,8 @@ import lombok.Getter;
 @Getter
 public enum OrderStatus {
 
-    /** 已下单，库存已锁定，等待付款 */
-    PENDING_PAYMENT("待付款"),
+    /** 已下单，库存已锁定，等待商家确认收款（系统不接入在线支付） */
+    PENDING_PAYMENT("待确认"),
     /** 已支付，等待发货 */
     PENDING_SHIPMENT("待发货"),
     /** 已填运单，等待收货 */

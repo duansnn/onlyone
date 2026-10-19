@@ -21,6 +21,17 @@ import AdminShop from '@/pages/admin/Shop';
 import PlatformShops from '@/pages/platform/Shops';
 import PlatformUsers from '@/pages/platform/Users';
 import NotFound from '@/pages/NotFound';
+import MobileLayout from '@/mobile/MobileLayout';
+import MHome from '@/mobile/pages/MHome';
+import MList from '@/mobile/pages/MList';
+import MProduct from '@/mobile/pages/MProduct';
+import MCart from '@/mobile/pages/MCart';
+import MCheckout from '@/mobile/pages/MCheckout';
+import MOrders from '@/mobile/pages/MOrders';
+import MOrderDetail from '@/mobile/pages/MOrderDetail';
+import MAccount from '@/mobile/pages/MAccount';
+import MAddress from '@/mobile/pages/MAddress';
+import MLogin from '@/mobile/pages/MLogin';
 import { useAuthStore } from '@/store/auth';
 
 /** 需要登录 */
@@ -33,14 +44,14 @@ function RequireAuth({ children }: { children: ReactElement }) {
   return children;
 }
 
-/** 需要有店铺身份（店主或店员） */
+/** 需要有店铺身份（店主或店员），或平台管理员（只用平台侧菜单） */
 function RequireShop({ children }: { children: ReactElement }) {
-  const { token, shops } = useAuthStore();
+  const { token, user, shops } = useAuthStore();
   const location = useLocation();
   if (!token) {
     return <Navigate to="/login" replace state={{ from: location.pathname }} />;
   }
-  if (!shops.length) {
+  if (!shops.length && !user?.platformAdmin) {
     return <Navigate to="/" replace />;
   }
   return children;
@@ -55,8 +66,83 @@ function RequirePlatform({ children }: { children: ReactElement }) {
   return children;
 }
 
+/** 手机端需要登录：拦下来时回手机端登录页，登录后回到原页 */
+function RequireMAuth({ children }: { children: ReactElement }) {
+  const token = useAuthStore((state) => state.token);
+  const location = useLocation();
+  if (!token) {
+    return (
+      <Navigate
+        to="/m/login"
+        replace
+        state={{ from: location.pathname + location.search }}
+      />
+    );
+  }
+  return children;
+}
+
 const router = createBrowserRouter([
   { path: '/login', element: <Login /> },
+  { path: '/m/login', element: <MLogin /> },
+  {
+    path: '/m',
+    element: <MobileLayout />,
+    children: [
+      { index: true, element: <MHome /> },
+      { path: 'list', element: <MList /> },
+      { path: 'product/:productId', element: <MProduct /> },
+      {
+        path: 'cart',
+        element: (
+          <RequireMAuth>
+            <MCart />
+          </RequireMAuth>
+        ),
+      },
+      {
+        path: 'checkout',
+        element: (
+          <RequireMAuth>
+            <MCheckout />
+          </RequireMAuth>
+        ),
+      },
+      {
+        path: 'orders',
+        element: (
+          <RequireMAuth>
+            <MOrders />
+          </RequireMAuth>
+        ),
+      },
+      {
+        path: 'orders/:orderId',
+        element: (
+          <RequireMAuth>
+            <MOrderDetail />
+          </RequireMAuth>
+        ),
+      },
+      {
+        path: 'address',
+        element: (
+          <RequireMAuth>
+            <MAddress />
+          </RequireMAuth>
+        ),
+      },
+      {
+        path: 'account',
+        element: (
+          <RequireMAuth>
+            <MAccount />
+          </RequireMAuth>
+        ),
+      },
+      { path: '*', element: <NotFound /> },
+    ],
+  },
   {
     path: '/',
     element: <StoreLayout />,

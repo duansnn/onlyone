@@ -84,9 +84,16 @@ public class MallDataInitializer implements ApplicationRunner {
         }
         try {
             ensurePlatformAdmin();
+            SysUser admin = findByUsername(PLATFORM_ADMIN_USERNAME);
             SysUser owner = ensureShopOwner();
             Shop shop = ensureShop();
             ensureMember(shop.getId(), owner.getId());
+            // 平台超管同时挂到默认店铺当店主：一个人就能跑通「开店 → 上架商品 → 下单」全流程。
+            // 平台身份与店铺身份是两套，且店铺侧接口只认 shop_member，不加这条 koko 建不了商品。
+            // 不需要时删掉这条 shop_member 记录即可，平台后台权限不受影响。
+            if (admin != null && !admin.getId().equals(owner.getId())) {
+                ensureMember(shop.getId(), admin.getId());
+            }
             seedCategories(shop.getId());
             log.info("[MallBootstrap] 初始化完成：店铺「{}」(id={}) 店主={}", shop.getName(), shop.getId(), owner.getUsername());
             log.info("[MallBootstrap] 默认口令：平台超管 {} / {}，店主 {} / {}（请尽快修改）",

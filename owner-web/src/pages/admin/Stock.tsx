@@ -125,6 +125,7 @@ export default function Stock() {
                 </Space>
                 <Table
                   rowKey="skuId"
+                  scroll={{ x: 'max-content' }}
                   loading={skuLoading}
                   dataSource={skus}
                   pagination={{
@@ -216,6 +217,7 @@ export default function Stock() {
                 </Space>
                 <Table
                   rowKey="id"
+                  scroll={{ x: 'max-content' }}
                   loading={logLoading}
                   dataSource={logs}
                   pagination={{

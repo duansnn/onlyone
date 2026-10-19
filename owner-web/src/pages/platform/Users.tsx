@@ -90,6 +90,7 @@ export default function PlatformUsers() {
 
       <Table
         rowKey="id"
+        scroll={{ x: 'max-content' }}
         loading={loading}
         dataSource={rows}
         pagination={{

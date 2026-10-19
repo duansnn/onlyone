@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Card, Empty, Rate, Select, Space, Skeleton, Table, Tag } from 'antd';
 import { adminReviewApi } from '@/api/admin';
+import SafeImage from '@/components/SafeImage';
 import { useAuthStore } from '@/store/auth';
 import { dt } from '@/utils/format';
 import type { Review } from '@/types/mall';
@@ -65,6 +66,7 @@ export default function AdminReviews() {
       ) : (
         <Table
           rowKey="id"
+          scroll={{ x: 'max-content' }}
           loading={loading}
           dataSource={rows}
           pagination={{
@@ -92,7 +94,7 @@ export default function AdminReviews() {
                 r.images?.length ? (
                   <Space>
                     {r.images.slice(0, 3).map((img) => (
-                      <img
+                      <SafeImage
                         key={img}
                         src={img}
                         alt=""

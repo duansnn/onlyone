@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react';
 import { Button, Card, Empty, Skeleton, Tag } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import { storeApi } from '@/api/mall';
+import SafeImage from '@/components/SafeImage';
 import { useShopStore } from '@/store/shop';
-import { money, PLACEHOLDER } from '@/utils/format';
+import { money } from '@/utils/format';
 import type { Category, ProductCard } from '@/types/mall';
 
 export default function Home() {
@@ -77,7 +78,7 @@ export default function Home() {
               onClick={() => navigate(`/product/${p.id}`)}
               onKeyDown={(e) => e.key === 'Enter' && navigate(`/product/${p.id}`)}
             >
-              <img className="mall-card__img" src={p.coverImage || PLACEHOLDER} alt={p.name} />
+              <SafeImage className="mall-card__img" src={p.coverImage} alt={p.name} />
               <div className="mall-card__body">
                 <span className="mall-card__name">{p.name}</span>
                 <span className="mall-card__price">

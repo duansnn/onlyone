@@ -44,18 +44,16 @@ public record AddressVO(
 
     /** 拼接省市区与详细地址 */
     public static String join(String province, String city, String district, String detail) {
+        // 直辖市与港澳的省市同名（北京市 / 北京市 / 朝阳区），相邻层级重复时只保留一次，
+        // 否则会拼成「北京市北京市朝阳区」
         StringBuilder sb = new StringBuilder();
-        if (province != null) {
-            sb.append(province);
-        }
-        if (city != null) {
-            sb.append(city);
-        }
-        if (district != null) {
-            sb.append(district);
-        }
-        if (detail != null) {
-            sb.append(detail);
+        String prev = null;
+        for (String part : new String[]{province, city, district, detail}) {
+            if (part == null || part.isBlank() || part.equals(prev)) {
+                continue;
+            }
+            sb.append(part);
+            prev = part;
         }
         return sb.toString();
     }

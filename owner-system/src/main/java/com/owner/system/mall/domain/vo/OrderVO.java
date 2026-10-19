@@ -88,9 +88,6 @@ public record OrderVO(
         @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "Asia/Shanghai")
         LocalDateTime expireTime,
 
-        @Schema(description = "可以支付")
-        boolean canPay,
-
         @Schema(description = "可以取消")
         boolean canCancel,
 

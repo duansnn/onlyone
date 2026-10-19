@@ -14,10 +14,11 @@ import {
 } from 'antd';
 import { useNavigate, useParams } from 'react-router-dom';
 import { cartApi, storeApi } from '@/api/mall';
+import SafeImage from '@/components/SafeImage';
 import { useAuthStore } from '@/store/auth';
 import { useShopStore } from '@/store/shop';
 import { toast } from '@/utils/feedback';
-import { dt, money, num, PLACEHOLDER } from '@/utils/format';
+import { dt, money, num } from '@/utils/format';
 import type { ProductDetail as Detail, Review } from '@/types/mall';
 
 export default function ProductDetail() {
@@ -121,8 +122,8 @@ export default function ProductDetail() {
       <Card style={{ marginBottom: 16 }}>
         <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
           <div style={{ width: 340 }}>
-            <img
-              src={activeImage || PLACEHOLDER}
+            <SafeImage
+              src={activeImage}
               alt={detail.name}
               style={{
                 width: '100%',
@@ -134,7 +135,7 @@ export default function ProductDetail() {
             />
             <div className="mall-thumbs" style={{ marginTop: 12 }}>
               {(detail.images ?? []).map((img) => (
-                <img
+                <SafeImage
                   key={img}
                   src={img}
                   alt=""
@@ -238,7 +239,7 @@ export default function ProductDetail() {
               {r.images?.length > 0 && (
                 <div className="mall-thumbs" style={{ marginTop: 8 }}>
                   {r.images.map((img) => (
-                    <img key={img} src={img} alt="" />
+                    <SafeImage key={img} src={img} alt="" />
                   ))}
                 </div>
               )}

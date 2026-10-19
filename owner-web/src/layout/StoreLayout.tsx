@@ -75,10 +75,18 @@ export default function StoreLayout() {
 
   const menuItems = [
     { key: 'orders', label: '我的订单', icon: <ProfileOutlined /> },
-    { key: 'account', label: '我的地址', icon: <UserOutlined /> },
+    { key: 'address', label: '我的地址', icon: <UserOutlined /> },
     { key: 'coupons', label: '我的优惠券', icon: <GiftOutlined /> },
     { key: 'refunds', label: '退款/售后', icon: <SolutionOutlined /> },
   ];
+
+  /** 菜单项 → 路由。订单是独立页面，其余是账号页的 tab（原来一律跳 account?tab=key，导致「我的订单」落到不存在的 tab） */
+  const MENU_PATHS: Record<string, string> = {
+    orders: '/orders',
+    address: '/account?tab=address',
+    coupons: '/account?tab=coupons',
+    refunds: '/account?tab=refunds',
+  };
 
   return (
     <div className="mall-shell">
@@ -117,15 +125,20 @@ export default function StoreLayout() {
                   items: [
                     ...menuItems,
                     { type: 'divider' as const },
-                    ...(shops.length
-                      ? [{ key: 'admin', label: '进入店铺后台' }]
+                    ...(shops.length || user?.platformAdmin
+                      ? [
+                          {
+                            key: 'admin',
+                            label: shops.length ? '进入店铺后台' : '平台管理后台',
+                          },
+                        ]
                       : []),
                     { key: 'logout', label: '退出登录', danger: true },
                   ],
                   onClick: ({ key }) => {
                     if (key === 'logout') void logout();
-                    else if (key === 'admin') navigate('/admin');
-                    else navigate(`/account?tab=${key}`);
+                    else if (key === 'admin') navigate(shops.length ? '/admin' : '/admin/shops');
+                    else navigate(MENU_PATHS[key] ?? '/');
                   },
                 }}
               >

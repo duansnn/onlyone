@@ -265,14 +265,19 @@ owner:
     sms:
       # 未接短信通道，验证码只写日志。true 时把验证码随响应返回给前端，仅供本地联调，生产必须 false
       expose-code: false
-    pay:
-      # 没有微信/支付宝商户号时为 false：支付页显示「支付未开通」，订单停在待付款，
-      # 不提供「我已付款」按钮；退款同样不会假装成功。本地联调可临时打开。
-      mock-enabled: ${OWNER_PAY_MOCK_ENABLED:false}
+    # 图片上传：默认存本地磁盘，通过 /files/** 直接访问，不依赖任何对象存储
+    upload:
+      # 相对路径以启动目录为基准；生产建议改成挂载盘绝对路径，例如 /data/owner/uploads
+      dir: ${OWNER_UPLOAD_DIR:./uploads}
+      # 对外访问前缀，前端开发服务器已代理该前缀
+      public-prefix: /files
+      # 单张图片上限（字节），默认 5 MB
+      max-image-size: 5242880
     order:
-      # 每分钟扫描待付款超过 30 分钟的订单，取消并释放库存
+      # 未接入在线支付：订单停在「待确认」，由商家线下收款后点「确认收款」，
+      # 因此默认不做过期自动取消（否则订单会在商家确认前被脚本取消）
       timeout-job:
-        enabled: true
+        enabled: ${OWNER_ORDER_TIMEOUT_ENABLED:false}
       # 每天 02:10 把发货满 7 天的待收货订单改为已完成
       auto-finish-job:
         enabled: true

@@ -2,7 +2,7 @@
  * 顾客侧接口：账号、店面、地址、购物车、订单、支付、售后、评价、优惠券。
  * baseURL 为 /api，因此这里的路径都不带 /api 前缀。
  */
-import { del, get, post, put } from './request';
+import { del, get, post, put, uploadFile } from './request';
 import type {
   Address,
   AddressSave,
@@ -18,7 +18,6 @@ import type {
   OrderSummary,
   Paged,
   PageQuery,
-  PaymentCreate,
   ProductCard,
   ProductDetail,
   Refund,
@@ -26,6 +25,14 @@ import type {
   ShopBrief,
   StoreHome,
 } from '@/types/mall';
+
+/* ------------------------------- 上传 ------------------------------- */
+
+/** 图片上传：返回可直接用于 img src 的相对地址（如 /files/product/2026/10/19/xxx.jpg） */
+export const uploadApi = {
+  image: (file: File, folder: 'product' | 'shop' | 'review' | 'avatar' = 'product') =>
+    uploadFile<string>('/upload/image', file, { folder }),
+};
 
 /* ------------------------------- 账号 ------------------------------- */
 
@@ -114,15 +121,6 @@ export const orderApi = {
       autoFinishDays: number;
       refundWindowDays: number;
     }>('/order/options'),
-};
-
-/* ------------------------------- 支付 ------------------------------- */
-
-export const payApi = {
-  create: (orderId: string, channel: string) =>
-    post<PaymentCreate>(`/pay/${orderId}`, undefined, { channel }),
-  /** 本地联调：模拟通道回调（等价于支付成功后微信/支付宝的回调） */
-  mockCallback: (orderNo: string) => post<void>('/pay/mock/callback', undefined, { orderNo }),
 };
 
 /* ------------------------------- 售后 ------------------------------- */

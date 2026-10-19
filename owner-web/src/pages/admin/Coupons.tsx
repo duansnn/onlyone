@@ -145,6 +145,7 @@ export default function Coupons() {
 
       <Table
         rowKey="id"
+        scroll={{ x: 'max-content' }}
         loading={loading}
         dataSource={rows}
         pagination={{

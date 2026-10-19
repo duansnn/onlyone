@@ -99,17 +99,18 @@ services:
       OWNER_DRUID_MONITOR_PASSWORD: ${OWNER_DRUID_MONITOR_PASSWORD:-change-me}
       # 登录令牌密钥：生产务必设置
       OWNER_JWT_SECRET: ${OWNER_JWT_SECRET:-owner-mall-dev-secret-please-override-in-production}
-      # 支付通道：未接微信/支付宝商户号时保持 false，订单停在待付款
-      OWNER_PAY_MOCK_ENABLED: ${OWNER_PAY_MOCK_ENABLED:-false}
       # 短信通道：未接入时验证码只写日志
       OWNER_SMS_EXPOSE_CODE: ${OWNER_SMS_EXPOSE_CODE:-false}
       # 首次启动补齐店主账号口令
       OWNER_BOOTSTRAP_ADMIN_PASSWORD: ${OWNER_BOOTSTRAP_ADMIN_PASSWORD:-koko@2026}
       OWNER_BOOTSTRAP_OWNER_PASSWORD: ${OWNER_BOOTSTRAP_OWNER_PASSWORD:-shop123}
+      # 上传的图片落在挂载卷里，容器重建不丢
+      OWNER_UPLOAD_DIR: /app/uploads
     ports:
       - "41452:41452"
     volumes:
       - app-logs:/app/logs
+      - uploads:/app/uploads
     networks: [ owner-net ]
 
   # ------------------------------------------------------------ 前端
@@ -134,6 +135,8 @@ volumes:
   mysql-data:
   redis-data:
   app-logs:
+  # 上传的图片（OWNER_UPLOAD_DIR=/app/uploads）
+  uploads:
 
 networks:
   owner-net:

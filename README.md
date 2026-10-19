@@ -248,11 +248,36 @@ PUT 回传   2110285652501422000
 > 因此 `PageResult.total`、`R.timestamp` 仍是数字。
 > **前端所有含雪花主键的字段一律用 `string` 承接。**
 
+### 5.3 图片存储：默认本地磁盘，不依赖对象存储
+
+商品图、店铺横幅都走同一个接口 `POST /api/upload/image`，文件落在
+`owner.mall.upload.dir`（默认 `./uploads/<业务目录>/<年>/<月>/<日>/<随机名>.<ext>`），
+通过 `/files/**` 直接访问——`img` 标签不会带 `Authorization`，所以这个前缀是公开的。
+
+```
+上传：POST /api/upload/image  (multipart, file=@p1.jpg, folder=product)
+返回：{"code":200,"data":"/files/product/2026/10/19/3f2a....jpg"}
+静态映射：/files/**  →  file:<upload.dir>/
+```
+
+**换 OSS 时不需要改前端**：`FileStorage` 是接口，新增一个 `OssFileStorage` 实现
+（上传到 OSS 后返回完整 `https://cdn...` 地址），替换掉 `LocalFileStorage` 这个 Bean 即可，
+数据库里的 `url` 字段本来就是字符串，两种地址都能存。
+
+| 方案 | 成本 | 适用 |
+| --- | --- | --- |
+| 本地磁盘（当前） | 0 | 单机部署、内网、开发演示 |
+| 对象存储（OSS / COS / 七牛 / R2） | 存储约 0.12 元/GB/月 + 流量 | 正式上线；国内需已备案域名 |
+| 免费图床 | 0 | 只适合临时演示，随时可能失效 |
+
+> 演示商品图片放在前端 `owner-web/public/demo/p1..p10.jpg`，地址写成 `/demo/p1.jpg`，
+> 不依赖任何外网。演示数据由 `sql/demo-products.sql` 灌入（可重复执行）。
+
 ---
 
 ## 6. 接口清单
 
-`/api/storefront/**` 与 `/api/auth/register`、`/api/auth/login`、`/api/pay/notify/**` 公开，
+`/api/storefront/**` 与 `/api/auth/register`、`/api/auth/login` 公开，
 其余需 `Authorization: Bearer <token>`。
 
 ### 顾客侧
@@ -264,10 +289,15 @@ PUT 回传   2110285652501422000
 | 地址 | `GET/POST /api/address`、`PUT /api/address/{addressId}/default`、`DELETE /api/address/{addressId}` |
 | 购物车 | `GET /api/cart`、`GET /api/cart/count`、`POST /api/cart`、`POST /api/cart/merge`、`PUT /api/cart/quantity`、`DELETE /api/cart/{skuId}`、`DELETE /api/cart` |
 | 订单 | `POST /api/order/preview`、`POST /api/order/submit`、`GET /api/order/mine`、`GET /api/order/{orderId}`、`POST /api/order/{orderId}/cancel`、`POST /api/order/{orderId}/confirm`、`GET /api/order/options` |
-| 支付 | `POST /api/pay/{orderId}`、`POST /api/pay/notify/{channel}`、`POST /api/pay/mock/callback` |
 | 售后 | `POST /api/refund/orders/{orderId}`、`GET /api/refund/mine`、`GET /api/refund/{refundId}`、`POST /api/refund/{refundId}/return-ship`、`GET /api/refund/options` |
 | 评价 | `POST /api/review`、`GET /api/review/orders/{orderId}` |
 | 优惠券 | `GET /api/coupon/center`、`POST /api/coupon/{couponId}/receive`、`GET /api/coupon/mine`、`GET /api/coupon/usable` |
+
+### 通用
+
+| 模块 | 接口 |
+| --- | --- |
+| 上传 | `POST /api/upload/image`（multipart，字段 `file`，可选 `folder=product/shop/review/avatar`；返回 `/files/...` 相对地址） |
 
 ### 店铺侧（需 `shop_member`；管理操作需 `OWNER`）
 
@@ -304,9 +334,11 @@ PUT 回传   2110285652501422000
 | `owner.mall.bootstrap.ship-address` | 示例地址 | 售后退货默认用它，**店主应改成真实地址** |
 | `owner.mall.bootstrap.owner-*` | `shopadmin / shop123 / 13800000001` | 店主账号 |
 | `owner.mall.sms.expose-code` | `false` | 未接短信通道；`true` 时验证码随响应返回，**仅本地联调** |
-| `owner.mall.pay.mock-enabled` | `false` | 没有商户号时必须为 `false` |
-| `owner.mall.order.timeout-job.enabled` | `true` | 每分钟取消超 30 分钟的待付款订单并释放库存 |
+| `owner.mall.order.timeout-job.enabled` | `false` | 已关闭：线下收款没有「付款倒计时」，订单不会被脚本自动取消；需要时可打开（每分钟取消超 30 分钟的待确认订单） |
 | `owner.mall.order.auto-finish-job.enabled` | `true` | 每天 02:10 把发货满 7 天的待收货订单改为已完成 |
+| `owner.mall.upload.dir` | `./uploads` | 图片落盘目录（相对启动目录或绝对路径），生产建议挂独立数据盘 |
+| `owner.mall.upload.public-prefix` | `/files` | 上传文件的访问前缀，与前端代理一致 |
+| `owner.mall.upload.max-image-size` | `5242880` | 单张图片上限 5 MB |
 | `owner.thread-pool.*` | `8 / 32 / 1000 / 60` | 业务线程池 |
 | `owner.druid.monitor.*` | `admin / change-me` | Druid 监控台账号 |
 
@@ -391,6 +423,8 @@ PUT 回传   2110285652501422000
 ```
 owner-web/src
 ├── api/          request.ts（拆包 R）/ mall.ts（顾客侧）/ admin.ts（店铺 + 平台）
+├── components/   SafeImage（图片兜底）/ ImageUploader（多图上传，首图为主图）
+├── data/         regions.ts + regions.json（省市区离线数据，见下）
 ├── layout/       StoreLayout.tsx（店面）/ AdminLayout.tsx（后台）
 ├── pages/        Login / store/* / admin/* / platform/*
 ├── router/       index.tsx（RequireAuth / RequireShop / RequirePlatform 三层守卫）
@@ -398,6 +432,17 @@ owner-web/src
 ├── types/        mall.ts（与后端 VO/DTO 一一对应）
 └── utils/        format.ts（分↔元、时间、状态配色）/ feedback.ts（message 桥接）
 ```
+
+### 收货地址的省市区选择
+
+地址表单用 `Cascader` 三级联动，数据来自 **`src/data/regions.json`（86 KB，gzip 后约 19 KB）**，
+**不走任何第三方接口**：34 个省级（含港澳台）、365 个市级、3082 个区县，只在打开地址弹窗时
+动态 import（Vite 自动拆成独立 chunk），首屏不受影响。
+
+- 直辖市已压平成「北京市 / 北京市 / 朝阳区」，不会出现「市辖区」这种中间层
+- 台湾省只有县市两级，此时 `district` 留空（后端 `AddressSaveDTO` 不强制该字段）
+- 编辑历史地址时按名称反查路径，兼容「杭州」↔「杭州市」这类缺后缀的旧数据
+- 数据需要更新（行政区划调整）时重跑 `python scripts/gen-regions.py`，前端代码不用改
 
 ### 与后端对接的几个关键点
 
@@ -409,11 +454,45 @@ owner-web/src
   （`long`）本来就是数字。
 - **下单必须回传单价**：后端会比对 `price` 与会话里的价格，不一致直接拒绝（防篡改）。所以
   购物车和「立即购买」把 `price` 一起塞进 `sessionStorage['checkout:payload']`。
-- **支付不假装成功**：`/api/pay/{orderId}` 返回 `payable=false` 时界面只提示「支付通道未开通」，
-  订单留在待付款。开发环境额外给一个「模拟支付成功」按钮，它调用的是
-  `/api/pay/mock/callback`，走的是和真实通道完全相同的回调校验与幂等逻辑。
+- **不做在线支付**：项目**没有接入微信支付、也没有接入支付宝**（无 SDK、无商户号、无证书），
+  顾客端没有任何支付入口，也没有「我已付款」按钮。下单后订单停在 `PENDING_PAYMENT`（待确认），
+  商家线下收到钱（现金 / 转账 / 到付）后在店铺后台点「确认收款」
+  （`POST /api/shop/{shopId}/orders/{orderId}/confirm-payment`），订单才转待发货并扣减锁定库存。
+  退款同理：商家线下退回后点「同意退款」，系统只做记账与库存回滚。
+  将来要接微信/支付宝，在 `PaymentService` 里加通道实现即可，业务侧状态流转不用改。
 - **店面默认进哪家店**：新增公开接口 `GET /api/storefront/shops` 返回营业中的店铺，
   未登录也能看到，前端据此确定浏览的店铺（多店时按返回顺序取第一家）。
+
+### 手机端（`/m`）
+
+手机端不是一个新工程，而是同一份 `owner-web` 里的独立界面层：**独立样式、独立布局、独立入口**，
+桌面版改动不会溢出到手机端。
+
+| 项 | 说明 |
+| --- | --- |
+| 路由 | `/m`（首页）、`/m/list`（搜索 / 类目 / 排序）、`/m/product/:id`、`/m/cart`、`/m/checkout`、`/m/orders`、`/m/account`、`/m/address`、`/m/login` |
+| 目录 | `src/mobile/`：`MobileLayout.tsx` + `pages/*` + `components/MProductCard.tsx` + `mobile.css` |
+| 样式 | 全部类名以 `m-` 开头，**不使用 antd 组件**，避免桌面版组件在窄屏上的尺寸与间距问题 |
+| 布局 | 底部四个 Tab（首页 / 商品 / 购物车 / 我的）；详情、结算等二级页隐藏 Tab，改为底部操作条 |
+| 适配 | `viewport` + 卡片式两列网格 + 44px 触控高度 + `env(safe-area-inset-bottom)` 刘海安全区 |
+| 地址 | 手机端用**原生三级 `select`**（拉起系统选择器），复用同一份 `regions.json` |
+
+登录鉴权走独立的 `RequireMAuth` 守卫（未登录跳 `/m/login`，登录后回原页），
+令牌与桌面版共用同一份 `owner-mall-auth` 持久化。
+
+单独托管（手机访问的独立链接）：
+
+```bash
+cd owner-web
+npm run build                       # 先出 dist
+npm run mobile                      # 等价于 node ../scripts/mobile-server.mjs --port 5280
+# 或：node scripts/mobile-server.mjs --port 5280 --backend http://127.0.0.1:41452
+```
+
+`scripts/mobile-server.mjs` 是一个零依赖的静态服务器：根路径跳 `/m`、其余路径 SPA 回落
+到 `index.html`、文本资源 gzip、并把 `/api`、`/files`、`/actuator`、`/v3/api-docs`、`/doc.html`
+反代到后端。手机与电脑不在同一网段、或路由器开了客户端隔离时，用
+`cloudflared tunnel --url http://127.0.0.1:5280` 拿到一个临时公网 https 地址即可。
 
 技术栈：
 

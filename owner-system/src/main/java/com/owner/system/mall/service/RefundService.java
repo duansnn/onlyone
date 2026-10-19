@@ -30,7 +30,6 @@ import com.owner.system.mall.mapper.PaymentMapper;
 import com.owner.system.mall.mapper.RefundMapper;
 import com.owner.system.mall.mapper.ShopMapper;
 import com.owner.system.mall.support.MallCurrentUser;
-import com.owner.system.mall.support.PaymentGateway;
 import com.owner.system.mall.support.RefundVos;
 import com.owner.system.mall.support.ShopGuard;
 import lombok.RequiredArgsConstructor;
@@ -60,8 +59,8 @@ import java.util.Map;
  *
  * <p>拒绝时必须填理由，订单恢复到申请前的状态（申请时的原状态记在 {@code order_log} 里）。</p>
  *
- * <p><b>关于退款本身</b>：退款必须经 {@link PaymentGateway} 真正发起。通道未开通时
- * 直接失败并回滚，订单仍停在「退款中」，不会出现「钱没退却显示已退款」。</p>
+ * <p><b>关于退款本身</b>：目前未接入在线支付，退款为线下记账（原路退回由店主在线下完成），
+ * 系统只负责审批与状态流转，不会假装「钱已退」。</p>
  */
 @Slf4j
 @Service
@@ -87,7 +86,6 @@ public class RefundService {
     private final OrderService orderService;
     private final StockService stockService;
     private final ShopGuard shopGuard;
-    private final PaymentGateway paymentGateway;
 
     // ==================================================================
     // 顾客侧
@@ -351,22 +349,21 @@ public class RefundService {
     // ==================================================================
 
     /**
-     * 真正的退款：原路退回 → 库存退回 → 订单已退款。
+     * 结案退款：库存退回 → 订单已退款。
      *
-     * <p>退款通道没开通时直接抛异常并回滚，订单留在「退款中」，绝不假装退款成功。</p>
+     * <p>本项目不接入在线支付，钱是线下收的，因此退款也由商家线下完成（原路退回 / 现金 / 转账）。
+     * 商家在后台点「同意退款 / 确认收货」即视为已把钱退回，系统只做记账与库存回滚，
+     * 不会调用任何支付通道，也不会出现「钱没退却显示已退款」——是否退钱由商家的这个动作确认。</p>
      */
     private void doRefund(Refund refund, OrderInfo order, Long operatorId, String remark) {
-        Payment payment = successPaymentOf(order.getId());
-        if (payment == null) {
-            throw new ServiceException(ResultCode.BUSINESS_ERROR, "找不到该订单已入账的支付记录，无法退款");
-        }
         long amount = orZero(refund.getRefundAmount());
         if (amount <= 0) {
             throw new ServiceException(ResultCode.BUSINESS_ERROR, "退款金额异常，无法退款");
         }
-        if (!paymentGateway.refund(payment, amount, refund.getReason())) {
-            throw new ServiceException(ResultCode.BUSINESS_ERROR,
-                    "退款通道未开通，退款没有发起，订单仍停在退款中");
+        // 校验该订单确实有收款记录（线下收款也会写一条 OFFLINE 的成功支付单）
+        Payment payment = successPaymentOf(order.getId());
+        if (payment == null) {
+            throw new ServiceException(ResultCode.BUSINESS_ERROR, "该订单没有收款记录，无法退款");
         }
 
         // 库存退回（仅退款是货没发出去、退货退款是货回来了，两种都要加回库存）
@@ -383,7 +380,7 @@ public class RefundService {
         order.setStatus(OrderStatus.REFUNDED.name());
         orderService.saveOrder(order);
         orderService.writeLog(order.getId(), from, OrderStatus.REFUNDED.name(), operatorId,
-                OperatorType.SHOP, "退款 " + amount + " 分原路退回（" + remark + "）");
+                OperatorType.SHOP, "退款 " + amount / 100.0 + " 元已线下退回（" + remark + "）");
 
         log.info("[Refund] 退款完成 refundId={}, orderId={}, amount={}分",
                 refund.getId(), order.getId(), amount);

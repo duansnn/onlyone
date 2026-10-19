@@ -128,6 +128,7 @@ export default function PlatformShops() {
 
       <Table
         rowKey="shopId"
+        scroll={{ x: 'max-content' }}
         loading={loading}
         dataSource={rows}
         pagination={{

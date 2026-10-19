@@ -21,21 +21,21 @@ import {
   Timeline,
 } from 'antd';
 import { useNavigate } from 'react-router-dom';
-import { orderApi, payApi, refundApi, reviewApi } from '@/api/mall';
+import { orderApi, refundApi, reviewApi } from '@/api/mall';
+import SafeImage from '@/components/SafeImage';
 import { toast } from '@/utils/feedback';
 import {
   dt,
   money,
   num,
   orderStatusColor,
-  PLACEHOLDER,
   refundStatusColor,
 } from '@/utils/format';
 import type { OrderDetail, OrderSummary, Refund } from '@/types/mall';
 
 const FILTERS = [
   { value: '', label: '全部' },
-  { value: 'PENDING_PAYMENT', label: '待付款' },
+  { value: 'PENDING_PAYMENT', label: '待确认' },
   { value: 'PENDING_SHIPMENT', label: '待发货' },
   { value: 'PENDING_RECEIPT', label: '待收货' },
   { value: 'FINISHED', label: '已完成' },
@@ -56,9 +56,6 @@ export default function Orders() {
   const [detailOpen, setDetailOpen] = useState(false);
 
   const [cancelReasons, setCancelReasons] = useState<string[]>([]);
-  const [payOrder, setPayOrder] = useState<OrderSummary | null>(null);
-  const [channel, setChannel] = useState('WECHAT');
-  const [payInfo, setPayInfo] = useState<{ payable: boolean; message?: string; orderNo: string } | null>(null);
 
   const [refundOrder, setRefundOrder] = useState<OrderSummary | null>(null);
   const [reviewOrder, setReviewOrder] = useState<OrderSummary | null>(null);
@@ -101,30 +98,6 @@ export default function Orders() {
     }
   };
 
-  const doPay = async () => {
-    if (!payOrder) return;
-    try {
-      const result = await payApi.create(String(payOrder.id), channel);
-      setPayInfo({ payable: result.payable, message: result.message, orderNo: result.orderNo });
-      if (!result.payable) toast.warning(result.message || '支付通道未开通');
-    } catch {
-      /* 拦截器已提示 */
-    }
-  };
-
-  const mockNotify = async () => {
-    if (!payInfo) return;
-    try {
-      await payApi.mockCallback(payInfo.orderNo);
-      toast.success('支付成功');
-      setPayOrder(null);
-      setPayInfo(null);
-      await load();
-    } catch {
-      /* 拦截器已提示 */
-    }
-  };
-
   const submitRefund = async () => {
     if (!refundOrder) return;
     try {
@@ -161,7 +134,7 @@ export default function Orders() {
     }
   };
 
-  const refundOfOrder: Refund | null = detail?.refund ?? null;
+  const refundOfOrder: Refund | null = detail?.currentRefund ?? null;
 
   return (
     <div>
@@ -203,8 +176,8 @@ export default function Orders() {
             extra={<span className="mall-card__meta">{dt(order.createTime)}</span>}
           >
             <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
-              <img
-                src={order.coverImage || PLACEHOLDER}
+              <SafeImage
+                src={order.coverImage}
                 alt=""
                 style={{ width: 64, height: 64, borderRadius: 10, objectFit: 'cover', background: '#f5f5f5' }}
               />
@@ -224,18 +197,6 @@ export default function Orders() {
               <Button size="small" onClick={() => void openDetail(order)}>
                 订单详情
               </Button>
-              {order.canPay && (
-                <Button
-                  size="small"
-                  type="primary"
-                  onClick={() => {
-                    setPayOrder(order);
-                    setPayInfo(null);
-                  }}
-                >
-                  去支付
-                </Button>
-              )}
               {order.canCancel && (
                 <Popconfirm
                   title="取消订单"
@@ -344,8 +305,8 @@ export default function Orders() {
             <Divider>商品</Divider>
             {detail.items.map((item) => (
               <div key={item.id} style={{ display: 'flex', gap: 12, alignItems: 'center', padding: '6px 0' }}>
-                <img
-                  src={item.imageUrl || PLACEHOLDER}
+                <SafeImage
+                  src={item.imageUrl}
                   alt=""
                   style={{ width: 48, height: 48, borderRadius: 8, objectFit: 'cover', background: '#f5f5f5' }}
                 />
@@ -417,53 +378,6 @@ export default function Orders() {
           </>
         )}
       </Drawer>
-
-      {/* 去支付 */}
-      <Modal
-        open={Boolean(payOrder)}
-        title="发起支付"
-        onCancel={() => {
-          setPayOrder(null);
-          setPayInfo(null);
-        }}
-        onOk={() => void doPay()}
-        okText="创建支付单"
-        cancelText="关闭"
-      >
-        <p className="mall-card__meta">
-          订单 {payOrder?.orderNo}，应付 {money(payOrder?.payAmount ?? 0)}
-        </p>
-        <Radio.Group
-          value={channel}
-          options={[
-            { value: 'WECHAT', label: '微信支付' },
-            { value: 'ALIPAY', label: '支付宝' },
-          ]}
-          optionType="button"
-          buttonStyle="solid"
-          onChange={(e) => setChannel(e.target.value)}
-        />
-        {payInfo && (
-          <Alert
-            style={{ marginTop: 16 }}
-            type={payInfo.payable ? 'success' : 'warning'}
-            showIcon
-            message={payInfo.payable ? '支付单已创建' : '支付通道未开通'}
-            description={
-              payInfo.payable
-                ? '真实环境请用通道返回的参数唤起收银台。'
-                : payInfo.message || '未配置商户号，订单会留在待付款。'
-            }
-            action={
-              payInfo.payable ? (
-                <Button size="small" onClick={() => void mockNotify()}>
-                  模拟支付成功
-                </Button>
-              ) : null
-            }
-          />
-        )}
-      </Modal>
 
       {/* 申请售后 */}
       <Modal

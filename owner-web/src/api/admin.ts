@@ -93,6 +93,9 @@ export const adminOrderApi = {
   detail: (shopId: string, orderId: string) =>
     get<OrderDetail>(`/shop/${shopId}/orders/${orderId}`),
   shipCompanies: (shopId: string) => get<string[]>(`/shop/${shopId}/orders/ship-companies`),
+  /** 线下收款：商家确认收到钱，订单从「待确认」转「待发货」 */
+  confirmPayment: (shopId: string, orderId: string) =>
+    post<void>(`/shop/${shopId}/orders/${orderId}/confirm-payment`),
   ship: (shopId: string, orderId: string, data: { shipCompany: string; shipNo: string }) =>
     post<void>(`/shop/${shopId}/orders/${orderId}/ship`, data),
   updateShip: (shopId: string, orderId: string, data: { shipCompany: string; shipNo: string }) =>

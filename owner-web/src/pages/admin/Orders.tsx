@@ -9,6 +9,7 @@ import {
   Form,
   Input,
   Modal,
+  Popconfirm,
   Select,
   Space,
   Table,
@@ -17,14 +18,15 @@ import {
 } from 'antd';
 import { useSearchParams } from 'react-router-dom';
 import { adminOrderApi } from '@/api/admin';
+import SafeImage from '@/components/SafeImage';
 import { useAuthStore } from '@/store/auth';
 import { toast } from '@/utils/feedback';
-import { dt, money, orderStatusColor, PLACEHOLDER } from '@/utils/format';
+import { dt, money, orderStatusColor } from '@/utils/format';
 import type { OrderDetail, OrderSummary } from '@/types/mall';
 
 const STATUSES = [
   { value: '', label: '全部' },
-  { value: 'PENDING_PAYMENT', label: '待付款' },
+  { value: 'PENDING_PAYMENT', label: '待确认' },
   { value: 'PENDING_SHIPMENT', label: '待发货' },
   { value: 'PENDING_RECEIPT', label: '待收货' },
   { value: 'FINISHED', label: '已完成' },
@@ -91,6 +93,17 @@ export default function AdminOrders() {
       setDetail(await adminOrderApi.detail(shopId, String(order.id)));
     } catch {
       setDetailOpen(false);
+    }
+  };
+
+  /** 线下收款确认：不与任何支付平台交互，只是把订单推进到待发货 */
+  const confirmPaid = async (row: OrderSummary) => {
+    try {
+      await adminOrderApi.confirmPayment(shopId, String(row.id));
+      toast.success('已确认收款，订单转为待发货');
+      await load();
+    } catch {
+      /* 拦截器已提示 */
     }
   };
 
@@ -162,6 +175,7 @@ export default function AdminOrders() {
 
       <Table
         rowKey="id"
+        scroll={{ x: 'max-content' }}
         loading={loading}
         dataSource={rows}
         pagination={{
@@ -185,8 +199,8 @@ export default function AdminOrders() {
             title: '商品',
             render: (_, r) => (
               <Space>
-                <img
-                  src={r.coverImage || PLACEHOLDER}
+                <SafeImage
+                  src={r.coverImage}
                   alt=""
                   style={{ width: 40, height: 40, borderRadius: 8, objectFit: 'cover' }}
                 />
@@ -218,12 +232,25 @@ export default function AdminOrders() {
           },
           {
             title: '操作',
-            width: 190,
+            width: 220,
             render: (_, r) => (
               <Space>
                 <Button size="small" onClick={() => void openDetail(r)}>
                   详情
                 </Button>
+                {r.status === 'PENDING_PAYMENT' && (
+                  <Popconfirm
+                    title="确认已经收到这笔钱？"
+                    description="确认后订单转为待发货。系统不对接在线支付，请先线下收款。"
+                    okText="已收款"
+                    cancelText="取消"
+                    onConfirm={() => void confirmPaid(r)}
+                  >
+                    <Button size="small" type="primary">
+                      确认收款
+                    </Button>
+                  </Popconfirm>
+                )}
                 {r.status === 'PENDING_SHIPMENT' && (
                   <Button
                     size="small"
@@ -292,8 +319,8 @@ export default function AdminOrders() {
             <Divider>商品</Divider>
             {detail.items.map((item) => (
               <div key={item.id} style={{ display: 'flex', gap: 12, alignItems: 'center', padding: '6px 0' }}>
-                <img
-                  src={item.imageUrl || PLACEHOLDER}
+                <SafeImage
+                  src={item.imageUrl}
                   alt=""
                   style={{ width: 48, height: 48, borderRadius: 8, objectFit: 'cover', background: '#f5f5f5' }}
                 />

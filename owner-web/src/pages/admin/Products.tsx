@@ -15,9 +15,11 @@ import {
 } from 'antd';
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 import { categoryApi, productApi } from '@/api/admin';
+import ImageUploader from '@/components/ImageUploader';
+import SafeImage from '@/components/SafeImage';
 import { useAuthStore } from '@/store/auth';
 import { toast } from '@/utils/feedback';
-import { dt, fenToYuanInput, money, PLACEHOLDER, productStatusColor, yuanToFen } from '@/utils/format';
+import { dt, fenToYuanInput, money, productStatusColor, yuanToFen } from '@/utils/format';
 import type { Category, ProductAdmin } from '@/types/mall';
 
 interface ProductForm {
@@ -106,7 +108,7 @@ export default function Products() {
     form.setFieldsValue({
       status: 'DRAFT',
       sort: 0,
-      images: [''],
+      images: [],
       skus: [{ specName: '默认规格', price: 0, stock: 0 }],
     });
     setOpen(true);
@@ -124,7 +126,7 @@ export default function Products() {
         detail: detail.detail,
         status: detail.status,
         sort: detail.sort,
-        images: detail.images?.length ? detail.images : [''],
+        images: detail.images ?? [],
         skus: (detail.skus ?? []).map((s) => ({
           id: String(s.id),
           specName: s.specName,
@@ -227,6 +229,7 @@ export default function Products() {
 
       <Table
         rowKey="id"
+        scroll={{ x: 'max-content' }}
         loading={loading}
         dataSource={rows}
         pagination={{ current: pageNum, pageSize: 10, total, showSizeChanger: false, onChange: setPageNum }}
@@ -235,8 +238,8 @@ export default function Products() {
             title: '商品',
             render: (_, r) => (
               <Space>
-                <img
-                  src={r.coverImage || PLACEHOLDER}
+                <SafeImage
+                  src={r.coverImage}
                   alt=""
                   style={{ width: 44, height: 44, borderRadius: 8, objectFit: 'cover', background: '#f5f5f5' }}
                 />
@@ -351,31 +354,13 @@ export default function Products() {
           </Form.Item>
 
           <h3 style={{ fontSize: 14, fontWeight: 500, margin: '8px 0' }}>商品图片</h3>
-          <Form.List name="images">
-            {(fields, { add, remove }) => (
-              <>
-                {fields.map((field) => (
-                  <Space key={field.key} style={{ display: 'flex', marginBottom: 8 }} align="start">
-                    <Form.Item
-                      name={field.name}
-                      noStyle
-                      rules={[{ required: true, message: '请填写图片地址' }]}
-                    >
-                      <Input placeholder="https://... 图片地址，第一张为主图" style={{ width: 480 }} />
-                    </Form.Item>
-                    <Button
-                      icon={<DeleteOutlined />}
-                      disabled={fields.length <= 1}
-                      onClick={() => remove(field.name)}
-                    />
-                  </Space>
-                ))}
-                <Button icon={<PlusOutlined />} onClick={() => add('')} style={{ marginBottom: 16 }}>
-                  添加图片
-                </Button>
-              </>
-            )}
-          </Form.List>
+          <Form.Item
+            name="images"
+            rules={[{ required: true, message: '请至少上传 1 张商品图' }]}
+            style={{ marginBottom: 20 }}
+          >
+            <ImageUploader folder="product" max={8} tip="第一张为主图，建议 1:1，单张不超过 5 MB" />
+          </Form.Item>
 
           <h3 style={{ fontSize: 14, fontWeight: 500, margin: '8px 0' }}>规格与库存</h3>
           <Form.List name="skus">

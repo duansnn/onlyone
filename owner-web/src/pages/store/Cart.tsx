@@ -2,8 +2,9 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button, Card, Checkbox, Empty, InputNumber, Popconfirm, Skeleton, Space, Tag } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import { cartApi } from '@/api/mall';
+import SafeImage from '@/components/SafeImage';
 import { toast } from '@/utils/feedback';
-import { money, num, PLACEHOLDER } from '@/utils/format';
+import { money, num } from '@/utils/format';
 import type { Cart as CartType, CartItem } from '@/types/mall';
 
 export default function Cart() {
@@ -137,8 +138,8 @@ export default function Cart() {
                 checked={selected.includes(String(item.skuId))}
                 onChange={(e) => toggle(String(item.skuId), e.target.checked)}
               />
-              <img
-                src={item.imageUrl || PLACEHOLDER}
+              <SafeImage
+                src={item.imageUrl}
                 alt={item.productName}
                 style={{ width: 64, height: 64, borderRadius: 10, objectFit: 'cover', background: '#f5f5f5' }}
               />
@@ -172,8 +173,8 @@ export default function Cart() {
                   style={{ display: 'flex', gap: 14, alignItems: 'center', padding: '10px 0', opacity: 0.55 }}
                 >
                   <Checkbox disabled />
-                  <img
-                    src={item.imageUrl || PLACEHOLDER}
+                  <SafeImage
+                    src={item.imageUrl}
                     alt=""
                     style={{ width: 64, height: 64, borderRadius: 10, objectFit: 'cover' }}
                   />

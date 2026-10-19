@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   Button,
   Card,
+  Cascader,
   Divider,
   Empty,
   Form,
@@ -15,8 +16,15 @@ import {
   Tag,
   message as antdMessage,
 } from 'antd';
-import { useSearchParams } from 'react-router-dom';
+import { Navigate, useSearchParams } from 'react-router-dom';
 import { addressApi, authApi, couponApi, refundApi, storeApi } from '@/api/mall';
+import {
+  findRegionPath,
+  loadRegions,
+  REGION_FIELD_NAMES,
+  splitRegion,
+  type RegionNode,
+} from '@/data/regions';
 import { useAuthStore } from '@/store/auth';
 import { useShopStore } from '@/store/shop';
 import { toast } from '@/utils/feedback';
@@ -35,6 +43,7 @@ export default function Account() {
   const [refunds, setRefunds] = useState<Refund[]>([]);
   const [addressOpen, setAddressOpen] = useState(false);
   const [editing, setEditing] = useState<Address | null>(null);
+  const [regions, setRegions] = useState<RegionNode[]>([]);
   const [shipTarget, setShipTarget] = useState<Refund | null>(null);
 
   const [profileForm] = Form.useForm();
@@ -121,10 +130,29 @@ export default function Account() {
     mobileForm.resetFields();
   };
 
+  /** 打开地址弹窗；首次打开时才加载省市区数据（独立 chunk），编辑时把名称还原成级联路径 */
+  const openAddress = async (target?: Address) => {
+    const options = regions.length ? regions : await loadRegions();
+    if (!regions.length) setRegions(options);
+    setEditing(target ?? null);
+    addressForm.resetFields();
+    if (target) {
+      addressForm.setFieldsValue({
+        ...target,
+        region: findRegionPath(target.province, target.city, target.district),
+        isDefault: target.isDefault === 1,
+      });
+    }
+    setAddressOpen(true);
+  };
+
   const saveAddress = async () => {
     const values = await addressForm.validateFields();
-    if (editing) await addressApi.update({ ...values, id: editing.id });
-    else await addressApi.create(values);
+    // 级联选择器给的是一个路径数组，提交前拆回 province / city / district
+    const { region, ...rest } = values;
+    const payload = { ...rest, ...splitRegion(region) };
+    if (editing) await addressApi.update({ ...payload, id: editing.id });
+    else await addressApi.create(payload);
     toast.success('地址已保存');
     setAddressOpen(false);
     setEditing(null);
@@ -141,6 +169,9 @@ export default function Account() {
     shipForm.resetFields();
     await loadRefunds();
   };
+
+  // 旧链接 /account?tab=orders 曾因为不存在该 tab 而白屏，订单其实是独立页面
+  if (tab === 'orders' || tab === 'order') return <Navigate to="/orders" replace />;
 
   return (
     <div>
@@ -239,11 +270,7 @@ export default function Account() {
                 extra={
                   <Button
                     type="primary"
-                    onClick={() => {
-                      setEditing(null);
-                      addressForm.resetFields();
-                      setAddressOpen(true);
-                    }}
+                    onClick={() => void openAddress()}
                   >
                     新增地址
                   </Button>
@@ -266,11 +293,7 @@ export default function Account() {
                         <Space>
                           <Button
                             size="small"
-                            onClick={() => {
-                              setEditing(a);
-                              addressForm.setFieldsValue({ ...a, isDefault: a.isDefault === 1 });
-                              setAddressOpen(true);
-                            }}
+                            onClick={() => void openAddress(a)}
                           >
                             编辑
                           </Button>
@@ -457,17 +480,19 @@ export default function Account() {
           >
             <Input maxLength={11} />
           </Form.Item>
-          <Space size={8} style={{ display: 'flex' }}>
-            <Form.Item name="province" label="省" rules={[{ required: true, message: '必填' }]}>
-              <Input maxLength={20} />
-            </Form.Item>
-            <Form.Item name="city" label="市" rules={[{ required: true, message: '必填' }]}>
-              <Input maxLength={20} />
-            </Form.Item>
-            <Form.Item name="district" label="区" rules={[{ required: true, message: '必填' }]}>
-              <Input maxLength={20} />
-            </Form.Item>
-          </Space>
+          <Form.Item
+            name="region"
+            label="所在地区"
+            rules={[{ required: true, message: '请选择省 / 市 / 区' }]}
+          >
+            <Cascader
+              options={regions}
+              fieldNames={REGION_FIELD_NAMES}
+              placeholder="请选择省 / 市 / 区"
+              showSearch
+              allowClear
+            />
+          </Form.Item>
           <Form.Item name="detail" label="详细地址" rules={[{ required: true, message: '请输入详细地址' }]}>
             <Input.TextArea rows={2} maxLength={120} />
           </Form.Item>

@@ -14,6 +14,7 @@ import {
   Tag,
 } from 'antd';
 import { categoryApi, shopApi } from '@/api/admin';
+import { SingleImageUploader } from '@/components/ImageUploader';
 import { isShopOwner, useAuthStore } from '@/store/auth';
 import { toast } from '@/utils/feedback';
 import { dt } from '@/utils/format';
@@ -156,18 +157,23 @@ export default function Shop() {
                   <Form.Item name="notice" label="店铺公告">
                     <Input.TextArea rows={2} maxLength={200} />
                   </Form.Item>
-                  <Space size={12} style={{ display: 'flex' }}>
-                    <Form.Item name="contactName" label="联系人">
-                      <Input maxLength={20} style={{ width: 200 }} />
+                  <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                    <Form.Item
+                      name="contactName"
+                      label="联系人"
+                      style={{ flex: '1 1 160px', minWidth: 0 }}
+                    >
+                      <Input maxLength={20} />
                     </Form.Item>
                     <Form.Item
                       name="contactMobile"
                       label="联系电话"
                       rules={[{ pattern: /^1[3-9]\d{9}$/, message: '手机号格式不正确' }]}
+                      style={{ flex: '1 1 160px', minWidth: 0 }}
                     >
-                      <Input maxLength={11} style={{ width: 200 }} />
+                      <Input maxLength={11} />
                     </Form.Item>
-                  </Space>
+                  </div>
                   <Form.Item name="businessHours" label="营业时间">
                     <Input maxLength={40} placeholder="例如 每天 9:00 - 21:00" />
                   </Form.Item>
@@ -178,8 +184,11 @@ export default function Shop() {
                   >
                     <Input.TextArea rows={2} maxLength={200} />
                   </Form.Item>
-                  <Form.Item name="bannerUrl" label="店铺横幅图片地址">
-                    <Input maxLength={255} />
+                  <Form.Item name="bannerUrl" label="店铺横幅">
+                    <SingleImageUploader
+                      folder="shop"
+                      tip="显示在店铺首页顶部，建议 3:1，不超过 5 MB"
+                    />
                   </Form.Item>
                   <Form.Item name="payNote" label="支付说明">
                     <Input maxLength={200} placeholder="例如：下单后 30 分钟内完成支付" />
@@ -212,6 +221,7 @@ export default function Shop() {
               >
                 <Table
                   rowKey="id"
+                  scroll={{ x: 'max-content' }}
                   pagination={false}
                   dataSource={categoryRows}
                   columns={[
@@ -280,6 +290,7 @@ export default function Shop() {
               >
                 <Table
                   rowKey="id"
+                  scroll={{ x: 'max-content' }}
                   pagination={false}
                   dataSource={members}
                   columns={[

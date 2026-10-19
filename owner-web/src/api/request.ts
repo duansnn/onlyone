@@ -84,4 +84,20 @@ export function del<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
   return service.delete(url, config) as unknown as Promise<T>;
 }
 
+/**
+ * 上传单个文件。
+ *
+ * 默认头是 application/json，这里必须让浏览器自己写 boundary；
+ * axios 检测到 FormData 时会清掉 Content-Type 并由浏览器补全。
+ */
+export function uploadFile<T>(url: string, file: File, params?: object): Promise<T> {
+  const form = new FormData();
+  form.append('file', file);
+  return service.post(url, form, {
+    params,
+    headers: { 'Content-Type': 'multipart/form-data' },
+    timeout: 60000,
+  }) as unknown as Promise<T>;
+}
+
 export default service;

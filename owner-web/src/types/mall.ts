@@ -46,6 +46,8 @@ export interface LoginResult {
   token: string;
   tokenType: string;
   expireSeconds: number;
+  /** 登录响应里就带了当前用户，不要再额外调 /auth/me（那时 token 还没入 store，会 401） */
+  user: AuthUser;
   shops: ShopBrief[];
 }
 
@@ -235,7 +237,6 @@ export interface OrderSummary {
   finishTime?: string;
   cancelTime?: string;
   expireTime?: string;
-  canPay: boolean;
   canCancel: boolean;
   canConfirmReceipt: boolean;
   canReview: boolean;
@@ -256,7 +257,8 @@ export interface OrderDetail {
   logs: OrderLog[];
   reviewed?: boolean;
   canReview?: boolean;
-  refund?: Refund | null;
+  /** 后端字段名就是 currentRefund（OrderDetailVO.currentRefund） */
+  currentRefund?: Refund | null;
 }
 
 export interface OrderPreview {
@@ -279,20 +281,6 @@ export interface OrderSubmitResult {
   orderNo: string;
   payAmount: number;
   expireTime: string;
-}
-
-/* ------------------------------ 支付 ------------------------------ */
-
-export interface PaymentCreate {
-  orderId: Id;
-  orderNo: string;
-  amount: number;
-  channel: string;
-  channelLabel: string;
-  payable: boolean;
-  outTradeNo?: string;
-  prepayPayload?: string;
-  message?: string;
 }
 
 /* ------------------------------ 售后 ------------------------------ */

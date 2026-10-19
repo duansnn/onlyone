@@ -32,6 +32,9 @@ logs/
 *.log
 *.tmp
 
+### 本地上传的文件（商品图等），不进仓库 ###
+uploads/
+
 ### Frontend (owner-web) ###
 node_modules/
 dist/

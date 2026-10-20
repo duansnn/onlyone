@@ -34,6 +34,7 @@ export default function MHome() {
   return (
     <div>
       <div className="m-hero">
+        <div className="m-hero__brand">Daily Goods · 日用铺</div>
         <div className="m-hero__name">{home.shopName}</div>
         {home.intro && <div className="m-hero__intro">{home.intro}</div>}
         {home.notice && (
@@ -57,10 +58,7 @@ export default function MHome() {
             enterKeyHint="search"
             inputMode="search"
           />
-          <button
-            onClick={search}
-            style={{ border: 0, background: 'none', color: '#fff', fontSize: 13, padding: 0 }}
-          >
+          <button onClick={search} className="m-searchbar__go">
             搜索
           </button>
         </div>
@@ -81,7 +79,7 @@ export default function MHome() {
 
       <div className="m-section-title">
         <span>全部商品</span>
-        <Link to="/m/list" style={{ color: '#737373', fontSize: 12, textDecoration: 'none' }}>
+        <Link to="/m/list" style={{ color: '#6f675e', fontSize: 12, textDecoration: 'none' }}>
           共 {home.productTotal} 件 ›
         </Link>
       </div>

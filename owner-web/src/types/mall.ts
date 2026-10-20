@@ -25,6 +25,9 @@ export interface PageQuery {
 
 /* ------------------------------- 账号 ------------------------------- */
 
+/** 全站角色：MERCHANT 店主（能进后台），CUSTOMER 顾客（只能逛店面） */
+export type MallRole = 'MERCHANT' | 'CUSTOMER';
+
 export interface AuthUser {
   id: Id;
   username: string;
@@ -32,6 +35,10 @@ export interface AuthUser {
   mobile?: string;
   email?: string;
   avatarUrl?: string;
+  /** 角色。旧缓存里可能没有该字段，用 store/auth 的 isMerchant() 判断 */
+  role?: MallRole;
+  roleLabel?: string;
+  /** 旧字段，等价于 role === 'MERCHANT' */
   platformAdmin: boolean;
 }
 
@@ -530,15 +537,46 @@ export interface PlatformShop {
   todayPaidAmount: number;
 }
 
+/**
+ * 顾客（后台「顾客管理」列表行）。
+ * 单商家模式下店主看的是自己的顾客，所以手机号给全号，并带消费统计。
+ */
 export interface PlatformUser {
   id: Id;
   username: string;
   nickname: string;
-  mobileMasked?: string;
+  mobile?: string;
   email?: string;
-  platformAdmin: boolean;
+  /** 是否店主本人（顾客列表里恒为 false） */
+  merchant: boolean;
   status: number;
   statusLabel: string;
   passwordSet: boolean;
+  /** 订单数（不含已取消） */
+  orderCount: number;
+  /** 累计消费（分） */
+  paidAmount: number;
+  /** 最后下单时间，从未下单为 null */
+  lastOrderTime?: string | null;
+  addressCount: number;
   createTime?: string;
+}
+
+/** 顾客详情里的订单行 */
+export interface CustomerOrder {
+  id: Id;
+  orderNo: string;
+  status: string;
+  statusLabel: string;
+  payAmount: number;
+  itemCount: number;
+  productSummary: string;
+  coverImage?: string | null;
+  createTime?: string;
+}
+
+export interface CustomerDetail {
+  profile: PlatformUser;
+  addresses: Address[];
+  orders: CustomerOrder[];
 }

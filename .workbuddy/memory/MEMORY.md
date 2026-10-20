@@ -37,6 +37,10 @@
 - 新增/修改表结构时同步更新 `sql/init.sql`（含 QRTZ_* 表）与 `sql/mall.sql`
 - 业务代码放 `owner-system`：框架级公用能力在 `com.owner.system.{domain.entity,mapper}`，
   电商业务全部在 `com.owner.system.mall` 下按 `controller / service / mapper / domain(entity,dto,vo,enums) / support / config / job` 分层
+- **顾客端只有最终售价**：`SkuVO.listPrice` 加了 `@JsonInclude(NON_NULL)`，
+  顾客端详情走 `ProductAssembler.toStoreSkuVoList()`（listPrice 传 null，字段直接不输出）；
+  后台商品编辑仍用 `toSkuVoList()` 看得到划线价。前端 `ProductDetail` / `MProduct`
+  里原来的划线价与「立省 ¥X」块已删除，别再加回来
 - **依赖只留真正用到的**：项目已无 WebSocket / AI / RocketMQ / Kafka / RabbitMQ / Redisson。
   加依赖前先 grep 确认有引用，别把上一版能力再带回来
 - **图片存储（2026-10-19）**：`FileStorage` 抽象，默认 `LocalFileStorage`
@@ -50,16 +54,45 @@
   **每次跑完 `smoke-mall.py` 都要重跑该 SQL**，否则测试商品又出现在店面
 
 ## 前端约定（owner-web）
+- **后台视觉（2026-10-20 统一）**：`AdminLayout.tsx` 内嵌 `ADMIN_THEME`（与店面 `STORE_THEME` 对称），
+  暖橙主色 + 米白底 + 表头 `#f7f1e8` + Menu 选中软橙；**后台按钮圆角 8，不用店面那种 999 胶囊**。
+  根 `App.tsx` 的 ConfigProvider 仍是黑主色（登录页在用），改配色时注意这三层：
+  根（全站基线）→ 店面 `STORE_THEME` / 后台 `ADMIN_THEME`（各自覆盖）。
+- **状态标签统一用 `src/components/StatusTag.tsx`**：`tone` 取自
+  `format.ts` 的 `orderStatusTone / refundStatusTone / productStatusTone`，
+  浅暖底 + 深色字 + 语义色圆点。**不要再写 `<Tag color="blue/cyan/purple">`**，
+  冷色预设会破坏暖色体系。antd v6 里 `Tag bordered={false}` 已弃用，用 `variant="filled"`。
+- **手机端 H5（2026-10-20 与店面统一）**：`src/mobile/`，类名全部 `m-` 前缀，
+  `mobile.css` 里的 `--m-*` 变量与 `storefront.css` 的 `--sf-*` **同一套色值**
+  （暖橙 `#ff5a1f` / 墨黑 `#17130f` / 米白 `#f8f5f0` / 圆角 20 / 暖色投影）。
+  桌面端改配色时手机端 `--m-*` 要同步改，否则两边会分叉。
+  组件内不要写死冷灰（`#737373`/`#a3a3a3`/`#ededed`）与蓝色链接（`#2563eb`），统一走变量或暖色。
+  **手机端 5280 由 `scripts/mobile-server.mjs` 托管 `owner-web/dist`，改完必须 `npm run build` 才能生效**
+- **zustand selector 禁止返回新引用**：写 `useStore((s) => s.x?.list ?? [])` 会让每次快照都是新数组，
+  触发 `Maximum update depth exceeded` 白屏（`MList.tsx` 踩过，`/m/list` 直接打开必崩）。
+  兜底空值一律用模块级常量（如 `const NO_CATEGORIES: Category[] = []`）。
+- **店面视觉系统（2026-10-20 重构）**：`src/styles/storefront.css`，全部类名 `sf-` 前缀，
+  暖橙 `#ff5a1f` / 墨黑 `#17130f` / 米白底 `#f8f5f0` / 大圆角；参考 TripVenture 的
+  「深色大图 + 悬浮白面板」版式。`StoreLayout` 内嵌 `ConfigProvider` 把 antd 主色改成橙色，
+  **只作用于店面**，`/admin` 与 `/m` 不受影响。
+  商品卡统一用 `src/components/ProductTile.tsx`（首页与列表共用）。
+  改店面页面优先复用 `.sf-grid/.sf-card/.sf-section/.sf-chip/.sf-btn` 等现成类，
+  不要再写内联样式堆新的视觉规则。
 - **2026-10-16 已整体迁移到电商**，一套工程三种界面：
   - 店面（顾客，`/` 下，**公开可逛**）：Home / ProductList / ProductDetail / Cart / Checkout / Orders / Account
   - 店铺后台（`/admin`）：Dashboard / Orders / Refunds / Products / Stock / Coupons / Reviews / Shop
-  - 平台后台（`/admin/shops`、`/admin/users`，仅 `platformAdmin`）
+  - 平台后台（`/admin/shops`、`/admin/users`）—— **2026-10-20 起已收起**，见下方权限模型
   - 登录页 `/login` 带「登录 / 注册」页签
-  - **角色落地规则（2026-10-16 修复）**：登录成功后若没有 `from`，按身份分流 ——
-    `platformAdmin` → `/admin/shops`，有店铺 → `/admin`，其余顾客 → `/`；
-    被守卫拦下来的跳转仍回原页。**`RequireShop` 必须放行 `platformAdmin`**
-    （平台超管不属于任何店铺，`shops` 恒为空，否则会被守卫当成"无店铺"踢回店面首页），
-    `AdminLayout` 在 `shops` 为空时只显示平台两项菜单
+  - **权限模型（2026-10-20 改为单商家）**：只有两种角色 `MERCHANT`（店主=koko）/ `CUSTOMER`（顾客）。
+    后端 `AuthUserVO.role` 下发，前端用 `store/auth.ts` 的 **`isMerchant(user)`** 判断
+    （旧 localStorage 没 role 时回退 `platformAdmin`）。
+    - 后台：`/admin/customers`（顾客管理，含详情抽屉）；`/admin/users` → 重定向到它；
+      `/admin/shops` → 重定向 `/admin/shop`；`PlatformShops.tsx` 保留但无路由、无菜单
+    - 菜单只有店铺运营 9 项，没有选店下拉、没有店员/平台入口；`RequireShop` 只放行 `MERCHANT`
+    - 前台 `StoreLayout` 用户菜单、手机端 `MAccount` 的「店铺后台」入口**仅店主可见**
+    - 顾客管理接口仍走 `/api/platform/users`（不改契约），但权限已改为
+      `MallCurrentUser.requireMerchant()`；列表排除 `shop_member` 成员与店主
+  - **登录成功后若没有 `from`**：店主 → `/admin`，顾客 → `/`；被守卫拦下的跳转仍回原页
 - 目录：`api/{request,mall,admin}.ts`、`layout/{StoreLayout,AdminLayout}`、`pages/{Login,store,admin,platform}`、
   `router`（`RequireAuth` / `RequireShop` / `RequirePlatform` 三层守卫）、`store/{auth,shop}`、
   `types/mall.ts`、`utils/{format,feedback}.ts`、`components/{SafeImage,ImageUploader}`、
@@ -74,6 +107,12 @@
   直接用即可。因为请求拦截器是从 `useAuthStore.getState().token` 取令牌的，
   `signIn()` 之前 token 还是 null，此时调 me 必然 401「未认证或登录已过期」
 - antd v6 用 `App.useApp()` 取 message，经 `src/utils/feedback.ts` 桥接给非组件模块
+  （另：`Drawer` 的 `width` 已弃用用 `size`；`destroyOnClose` 已弃用用 `destroyOnHidden`）
+- **商品表单**（新建/编辑）固定用 1080 宽双栏抽屉：左 4 段卡片 + 右「店面预览 / 上架检查」，
+  样式是 `styles/mall.css` 的 `.pf-*` 段；改字段时预览与检查项要跟着 `Form.useWatch` 一起加
+- **店面兜底配图**放 `owner-web/public/images/`（`hero-daily-goods.jpg` 首屏、`scene-categories.jpg` /
+  `scene-orders.jpg` 两张特色卡）。ImageGen 出的图右下角有「AI生成」水印，入库前先裁掉底部一条再压 jpg
+- 缺图占位统一走 `utils/format.ts` 的 `PLACEHOLDER`（暖色渐变 + 相框图标），不要再写死灰块
 - 开发期由 Vite 代理 `/api`、`/actuator`、`/v3/api-docs`、`/doc.html` 到 41452
   （后端地址可用 `VITE_BACKEND_ORIGIN` 覆盖，端口可用 `VITE_DEV_PORT` 覆盖）
 - **雪花 ID 一律用 `string`**（`types/mall.ts` 的 `Id = string`）：后端主键为 MyBatis-Plus
@@ -106,9 +145,19 @@
   `scroll={{ x: 'max-content' }}`；**表单里不要给 Input 写固定 px 宽度**（电话/联系人那种
   200+200 在 366px 容器必然溢出），用 `flex: 1 1 160px`。移动端断点样式集中在
   `styles/mall.css` 的 `@media (max-width: 767px)` 段
+- **注册后的资料页 `/welcome`**（2026-10-20）：独立布局（不套 StoreLayout），`RequireAuth`；
+  `Login` 的 `afterAuth(result, onboard=true)` 只在注册分支传 true。头像用
+  `components/AvatarUploader.tsx`（圆形，`uploadApi.image(file,'avatar')`），
+  **清空头像要传空串**（`avatarUrl: v ?? ''`），不传等于保持原值
+- **删除接口（2026-10-20 新增）**：`DELETE /api/shop/{shopId}/products/{productId}`
+  （逻辑删除 product+sku+image，有未完结订单时拒绝）与
+  `DELETE /api/shop/{shopId}/reviews/{reviewId}`（`requireOwner`，物理删除，删后订单可重评）
+- **库存链路**（不要重复实现）：`下单 lock` 只加 `locked_stock` → `确认收款 confirmPaid` 扣 `stock`
+  清锁定 → `退款 agree giveBack` 回补。验收脚本 `scripts/smoke-stock-chain.py`（14 项）
 - **视觉验证手段**：`.workbuddy/tmp/qr/shot.mjs`（puppeteer-core + agent-browser 自带 chrome）。
   Chrome 必须由 node 进程 fork，直接 `chrome --screenshot` 在本 shell 会被回收、无输出；
-  Git Bash 会把 `/admin` 参数转成 Windows 路径，路径要用 `SHOT_PATH=admin` 不带前导斜杠
+  Git Bash 会把 `/admin` 参数转成 Windows 路径，路径要用 `SHOT_PATH=admin` 不带前导斜杠。
+  **antd Table 的 `tr:first-of-type` 选中测行（measure row）**，取行请用 `tr.ant-table-row`
 
 ## Spring Boot 4 必须注意
 - 不要用 `spring-boot-starter-aop`（已移除），AOP 用 `aspectjweaver`
@@ -137,9 +186,11 @@
   否则「待确认」订单会被超时脚本误取消。`PayChannel` 保留 WECHAT/ALIPAY 仅为历史数据兼容
 - 售后按**整单**；申请时的订单原状态记在 `order_log`（`to_status=REFUNDING` 那条的
   `from_status`），拒绝时反查恢复，**不要**给 refund 表加字段
-- 启动引导 `MallDataInitializer` 自动建 koko / shopadmin / 「日用铺」/ 5 组两级类目（共 20 个）
-- **演示账号**：平台超管 `koko / koko@2026`；店主 `shopadmin / shop123`（或手机号 `13800000001`）；
-  顾客无预置账号，在登录页自行注册（`POST /api/auth/register`，账号用手机号）
+- 启动引导 `MallDataInitializer` 把 **koko 同时设为平台超管与「日用铺」店主**（2026-10-20 起
+  不再创建 `shopadmin`），并写 5 组两级类目（共 20 个）
+- **演示账号（2026-10-20 归位）**：店主/平台超管 `koko / koko@2026`；店员 `思柯`（`18203536390`）；
+  顾客 `Amara`（`13259841768`）。其余账号一律 `del_flag=1`，
+  归位脚本 `scripts/reset-demo-accounts.sql`（幂等，可重复跑）
 - 启动冒烟脚本在 **`scripts/`**（不在 .workbuddy/tmp）：`smoke-mall.py`（61 项）、
   `smoke-platform-users.py`（13 项），可重复跑。
   **后端必须用 Bash 的 `run_in_background=true` 起**，否则 shell 返回即被回收
@@ -150,11 +201,14 @@
 - MySQL 8.0：`localhost:3306`，root / `9999`，库 `owner`（旧库 `mtlntelliportal` 已废弃）
 - Redis：`localhost:6379`，**无密码**（配置中不要出现 `spring.data.redis.password`）
 - 无 Docker；项目已无 RocketMQ / Kafka / RabbitMQ / WebSocket / AI 依赖（2026-10-16 清理）
-- **GitHub 只能走 SSH**：直连 `github.com:443` 超时（HTTPS 克隆/push 全卡住），
-  而 `github.com:22` 与 `ssh.github.com:443` 实测通。`~/.ssh/config` 已把 `github.com`
-  指向 `ssh.github.com:443`，remote 用 `git@github.com:duansnn/onlyone.git`。
-  **全局 `.gitconfig` 的 `http.proxy = 127.0.0.1:33210` 指向的代理客户端平时没开**，
-  走 HTTPS 会立刻报 `Failed to connect ... over proxy`，别把这个错误当成"需要梯子"
+- **GitHub 推送现状（2026-10-20）**：`~/.ssh/id_ed25519` 于 2026-10-19 09:39 重新生成
+  且公钥**没有加到 GitHub 账号**，SSH 报 `git@ssh.github.com: Permission denied (publickey)`
+  （指纹 `SHA256:XNQJoBMp0bDZKegVG5OCRFCI8smy3wVbprBLP4BZ2ZI`）。
+  临时改为 **HTTPS remote** `https://github.com/duansnn/onlyone.git`，凭据管理器中已存
+  `duansnn` 的账号口令/token，可直接 push。注意 HTTPS 依赖 `.gitconfig` 的
+  `http.proxy = 127.0.0.1:33210`（梯子开着才通）；梯子关掉时会报
+  `Failed to connect ... over proxy`。等把新公钥加到 GitHub 后，可改回 SSH：
+  `git remote set-url origin git@github.com:duansnn/onlyone.git`
 - shell 中存在环境变量 `SERVER__PORT`，会覆盖 `server.port`，启动时需显式 `--server.port=41452`
   （或 `unset SERVER__PORT`；另有 `SERVER__HOST`，会映射到 `server.address`）
 - shell 中预设了透明代理 `http_proxy/https_proxy=http://127.0.0.1:64304`，会让 curl 访问

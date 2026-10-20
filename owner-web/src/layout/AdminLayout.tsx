@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Avatar, Button, Drawer, Layout, Menu, Select, Space, Tag } from 'antd';
+import { useEffect, useState } from 'react';
+import { Avatar, Button, ConfigProvider, Drawer, Layout, Menu, Space, Tag } from 'antd';
 import {
   AppstoreOutlined,
   AuditOutlined,
@@ -11,11 +11,10 @@ import {
   ShopOutlined,
   ShoppingOutlined,
   TeamOutlined,
-  UserSwitchOutlined,
 } from '@ant-design/icons';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { authApi } from '@/api/mall';
-import { useAuthStore } from '@/store/auth';
+import { shopRoleLabel, shopRoleOf, useAuthStore } from '@/store/auth';
 import { useShopStore } from '@/store/shop';
 
 /** 窄屏（手机）判定：用 matchMedia 同步取初值，避免首屏闪一下桌面侧栏 */
@@ -36,19 +35,64 @@ function useIsMobile(breakpoint = 768) {
   return isMobile;
 }
 
+/** 后台色板：与店面同源的暖橙，但更紧凑（小圆角、按钮不用胶囊、表格紧凑） */
+const ADMIN_THEME = {
+  token: {
+    colorPrimary: '#ff5a1f',
+    colorPrimaryHover: '#ec4a10',
+    colorPrimaryActive: '#d63f08',
+    colorLink: '#ff5a1f',
+    colorLinkHover: '#ec4a10',
+    colorInfo: '#ff5a1f',
+    colorText: '#17130f',
+    colorTextSecondary: '#3f3831',
+    colorTextTertiary: '#857e75',
+    colorBorder: '#e7dfd4',
+    colorBorderSecondary: '#f0eae1',
+    colorSplit: '#f0eae1',
+    colorBgLayout: '#f8f5f0',
+    colorBgContainer: '#ffffff',
+    colorFillAlter: '#faf6f1',
+    colorFillSecondary: '#f5f0e9',
+    borderRadius: 10,
+    borderRadiusLG: 14,
+    controlOutline: 'rgba(255, 90, 31, 0.12)',
+  },
+  components: {
+    Button: { primaryShadow: 'none', borderRadius: 8 },
+    Input: { activeBorderColor: '#ff5a1f', hoverBorderColor: '#ff7d45' },
+    Select: { optionSelectedBg: '#fff2ec' },
+    Table: {
+      headerBg: '#f7f1e8',
+      headerColor: '#4a443c',
+      rowHoverBg: '#fdf8f4',
+      borderColor: '#f0eae1',
+    },
+    Menu: {
+      itemSelectedBg: '#fff2ec',
+      itemSelectedColor: '#ff5a1f',
+      itemHoverBg: '#faf6f1',
+      itemBorderRadius: 8,
+      itemHeight: 42,
+    },
+    Card: { borderRadiusLG: 14 },
+    Tabs: { itemSelectedColor: '#ff5a1f', inkBarColor: '#ff5a1f' },
+    Pagination: { itemActiveBg: '#17130f' },
+    Tag: { defaultBg: '#faf6f1' },
+  },
+};
+
 export default function AdminLayout() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, shops, currentShopId, setCurrentShop, signOut } = useAuthStore();
+  const { user, shops, currentShopId, signOut } = useAuthStore();
+  // 店主和店员都是 MERCHANT，头像是谁、身份要看 shop_member（shops[].role）
+  const roleLabel = shopRoleLabel(shops, currentShopId);
+  const roleTone = shopRoleOf(shops, currentShopId)?.role === 'OWNER' ? 'owner' : 'staff';
   const { setShop } = useShopStore();
   const [collapsed, setCollapsed] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const isMobile = useIsMobile();
-
-  const shopOptions = useMemo(
-    () => shops.map((s) => ({ value: s.shopId, label: `${s.shopName}（${s.roleLabel}）` })),
-    [shops],
-  );
 
   useEffect(() => {
     if (currentShopId) setShop(currentShopId);
@@ -58,13 +102,6 @@ export default function AdminLayout() {
   useEffect(() => {
     setMenuOpen(false);
   }, [location.pathname]);
-
-  // 纯平台管理员没有店铺身份，店铺看板对他无意义，直接落到平台·店铺管理
-  useEffect(() => {
-    if (!shops.length && user?.platformAdmin && location.pathname === '/admin') {
-      navigate('/admin/shops', { replace: true });
-    }
-  }, [shops.length, user?.platformAdmin, location.pathname, navigate]);
 
   const logout = async () => {
     try {
@@ -76,29 +113,17 @@ export default function AdminLayout() {
     navigate('/');
   };
 
-  // 纯平台管理员（没有任何店铺身份）不显示店铺侧菜单，避免点进去都是 403
-  const shopItems = shops.length
-    ? [
-        { key: '/admin', icon: <BarChartOutlined />, label: '店铺看板' },
-        { key: '/admin/orders', icon: <ShoppingOutlined />, label: '订单与发货' },
-        { key: '/admin/refunds', icon: <AuditOutlined />, label: '退款/售后' },
-        { key: '/admin/products', icon: <AppstoreOutlined />, label: '商品管理' },
-        { key: '/admin/stock', icon: <InboxOutlined />, label: '库存管理' },
-        { key: '/admin/coupons', icon: <GiftOutlined />, label: '优惠券' },
-        { key: '/admin/reviews', icon: <CommentOutlined />, label: '顾客评价' },
-        { key: '/admin/shop', icon: <ShopOutlined />, label: '店铺与分类' },
-      ]
-    : [];
-
+  // 单商家模式：后台只有「店铺运营」和「顾客管理」两组，不再有平台/多店铺入口
   const items = [
-    ...shopItems,
-    ...(user?.platformAdmin
-      ? [
-          ...(shopItems.length ? [{ type: 'divider' as const }] : []),
-          { key: '/admin/shops', icon: <TeamOutlined />, label: '平台 · 店铺管理' },
-          { key: '/admin/users', icon: <UserSwitchOutlined />, label: '平台 · 用户管理' },
-        ]
-      : []),
+    { key: '/admin', icon: <BarChartOutlined />, label: '店铺看板' },
+    { key: '/admin/orders', icon: <ShoppingOutlined />, label: '订单与发货' },
+    { key: '/admin/refunds', icon: <AuditOutlined />, label: '退款/售后' },
+    { key: '/admin/products', icon: <AppstoreOutlined />, label: '商品管理' },
+    { key: '/admin/stock', icon: <InboxOutlined />, label: '库存管理' },
+    { key: '/admin/coupons', icon: <GiftOutlined />, label: '优惠券' },
+    { key: '/admin/reviews', icon: <CommentOutlined />, label: '顾客评价' },
+    { key: '/admin/customers', icon: <TeamOutlined />, label: '顾客管理' },
+    { key: '/admin/shop', icon: <ShopOutlined />, label: '店铺与分类' },
   ];
 
   const selected = (items as { key?: string }[])
@@ -120,79 +145,97 @@ export default function AdminLayout() {
     />
   );
 
-  const brand = <div className="admin-brand">日用铺后台</div>;
+  const brandMark = <img className="admin-brand__mark" src="/brand/logo-mark-sm.svg" alt="" />;
+  const brandFull = (
+    <div className="admin-brand">
+      {brandMark}
+      <span className="admin-brand__text">日用铺后台</span>
+    </div>
+  );
+  const brandMini = <div className="admin-brand admin-brand--mini">{brandMark}</div>;
 
   return (
-    <Layout className="admin-shell">
-      {isMobile ? (
-        <Drawer
-          open={menuOpen}
-          onClose={() => setMenuOpen(false)}
-          placement="left"
-          width={248}
-          closable={false}
-          styles={{ body: { padding: 0 } }}
-        >
-          {brand}
-          {menu}
-        </Drawer>
-      ) : (
-        <Layout.Sider
-          theme="light"
-          collapsible
-          collapsed={collapsed}
-          onCollapse={setCollapsed}
-          width={216}
-          className="admin-sider"
-        >
-          <div className="admin-brand">{collapsed ? '店' : '日用铺后台'}</div>
-          {menu}
-        </Layout.Sider>
-      )}
+    <ConfigProvider theme={ADMIN_THEME}>
+      <Layout className="admin-shell">
+        {isMobile ? (
+          <Drawer
+            open={menuOpen}
+            onClose={() => setMenuOpen(false)}
+            placement="left"
+            size={248}
+            closable={false}
+            styles={{ body: { padding: 0 } }}
+          >
+            {brandFull}
+            {menu}
+          </Drawer>
+        ) : (
+          <Layout.Sider
+            theme="light"
+            collapsible
+            collapsed={collapsed}
+            onCollapse={setCollapsed}
+            width={216}
+            className="admin-sider"
+          >
+            {collapsed ? brandMini : brandFull}
+            {menu}
+          </Layout.Sider>
+        )}
 
-      <Layout>
-        <Layout.Header className="admin-header">
-          <div className="admin-header__left">
-            {isMobile && (
-              <Button
-                type="text"
-                className="admin-header__menu"
-                icon={<MenuOutlined />}
-                onClick={() => setMenuOpen(true)}
-                aria-label="打开菜单"
-              />
-            )}
-            {shopOptions.length > 1 ? (
-              <Select
-                value={currentShopId ?? undefined}
-                options={shopOptions}
-                style={{ width: isMobile ? 148 : 220 }}
-                onChange={(value) => setCurrentShop(value)}
-              />
-            ) : shops.length ? (
-              <Tag color="blue">{shops[0]?.shopName ?? '未绑定店铺'}</Tag>
-            ) : (
-              <Tag color="gold">平台视角</Tag>
-            )}
-            <Button size="small" onClick={() => navigate(isMobile ? '/m' : '/')}>
-              {isMobile ? '手机版' : '回到店面'}
-            </Button>
-          </div>
-          <Space size={isMobile ? 8 : 12}>
-            <Avatar size="small" style={{ background: '#111' }}>
-              {(user?.nickname || user?.username || '?').slice(0, 1)}
-            </Avatar>
-            {!isMobile && <span>{user?.nickname || user?.username}</span>}
-            {!isMobile && user?.platformAdmin && <Tag color="gold">平台管理员</Tag>}
-            <Button size="small" onClick={() => void logout()}>
-              退出
-            </Button>
-          </Space>
-        </Layout.Header>
-        <Layout.Content className="admin-content">
-          <Outlet />
-        </Layout.Content>
+        <Layout>
+          <Layout.Header className="admin-header">
+            <div className="admin-header__left">
+              {isMobile && (
+                <Button
+                  type="text"
+                  className="admin-header__menu"
+                  icon={<MenuOutlined />}
+                  onClick={() => setMenuOpen(true)}
+                  aria-label="打开菜单"
+                />
+              )}
+              <Tag variant="filled" className="admin-tag">
+                {shops[0]?.shopName ?? '我的店铺'}
+              </Tag>
+              <Button size="small" onClick={() => navigate(isMobile ? '/m' : '/')}>
+                {isMobile ? '手机版' : '回到店面'}
+              </Button>
+            </div>
+            <Space size={isMobile ? 8 : 12}>
+              <span
+                className="admin-me"
+                role="button"
+                tabIndex={0}
+                title="个人资料"
+                onClick={() => navigate('/account?tab=profile')}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    navigate('/account?tab=profile');
+                  }
+                }}
+              >
+                <Avatar size="small" className="admin-avatar" src={user?.avatarUrl || undefined}>
+                  {(user?.nickname || user?.username || '?').slice(0, 1)}
+                </Avatar>
+                {!isMobile && <span className="admin-user">{user?.nickname || user?.username}</span>}
+              </span>
+              {!isMobile && roleLabel && (
+                <Tag variant="filled" className={`admin-tag admin-tag--${roleTone}`}>
+                  {roleLabel}
+                </Tag>
+              )}
+              <Button size="small" onClick={() => void logout()}>
+                退出
+              </Button>
+            </Space>
+          </Layout.Header>
+          <Layout.Content className="admin-content">
+            <Outlet />
+          </Layout.Content>
+        </Layout>
       </Layout>
-    </Layout>
+    </ConfigProvider>
   );
 }

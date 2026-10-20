@@ -17,7 +17,8 @@ import {
 import { adminRefundApi } from '@/api/admin';
 import { useAuthStore } from '@/store/auth';
 import { toast } from '@/utils/feedback';
-import { dt, money, refundStatusColor } from '@/utils/format';
+import { dt, money, refundStatusTone } from '@/utils/format';
+import StatusTag from '@/components/StatusTag';
 import type { Refund } from '@/types/mall';
 
 const FILTERS = [
@@ -109,7 +110,7 @@ export default function AdminRefunds() {
         type="info"
         showIcon
         message="售后按整单处理"
-        description="未发货的订单只能「仅退款」，同意后原路退回并恢复库存；已发货的订单走「退货退款」，同意后系统给出退货地址，顾客寄回并填写运单号，你确认收货后再发起退款。拒绝必须填写理由，订单会回到申请前的状态。"
+        description="未发货的订单只能「仅退款」，同意后按线下方式退回并恢复库存；已发货的订单走「退货退款」，同意后系统给出退货地址，顾客寄回并填写运单号，你确认收货后再发起退款。拒绝必须填写理由，订单会回到申请前的状态。"
       />
 
       <Card style={{ marginBottom: 16 }}>
@@ -136,7 +137,7 @@ export default function AdminRefunds() {
             title={
               <Space size={12}>
                 <span>{r.orderNo}</span>
-                <Tag color={refundStatusColor(r.status)}>{r.statusLabel}</Tag>
+                <StatusTag tone={refundStatusTone(r.status)}>{r.statusLabel}</StatusTag>
                 <Tag>{r.typeLabel}</Tag>
               </Space>
             }

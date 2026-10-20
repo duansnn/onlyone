@@ -128,7 +128,9 @@ export default function MobileLayout() {
               </svg>
             </button>
           )}
-          <div className="m-header__title">{path === '/m' ? shopName ?? '日用铺' : title}</div>
+          <div className={`m-header__title${path === '/m' ? ' m-header__title--brand' : ''}`}>
+            {path === '/m' ? shopName ?? '日用铺' : title}
+          </div>
           {!path.startsWith('/m/orders') && (
             <div className="m-header__extra">
               <Link to="/m/orders" style={{ color: 'inherit', textDecoration: 'none' }}>

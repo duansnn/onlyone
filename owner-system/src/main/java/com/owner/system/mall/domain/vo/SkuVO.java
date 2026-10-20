@@ -1,5 +1,6 @@
 package com.owner.system.mall.domain.vo;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.io.Serial;
@@ -20,7 +21,8 @@ public record SkuVO(
         @Schema(description = "售价（分）")
         Long price,
 
-        @Schema(description = "划线价（分）")
+        @Schema(description = "划线价（分）。顾客端不下发，只有后台商品编辑能看到")
+        @JsonInclude(JsonInclude.Include.NON_NULL)
         Long listPrice,
 
         @Schema(description = "库存")

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" width="96" height="96" role="img" aria-label="日用铺">
+  <g fill="none" stroke="#17130f" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M21.5 41.5 48 18l26.5 23.5" stroke-width="9"/>
+    <path d="M31 40v32a7 7 0 0 0 7 7h20a7 7 0 0 0 7-7V40" stroke-width="9"/>
+    <path d="M31 59.5h34" stroke-width="9"/>
+  </g>
+</svg>

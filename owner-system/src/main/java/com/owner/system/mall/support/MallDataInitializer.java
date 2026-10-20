@@ -24,8 +24,7 @@ import java.util.List;
  *
  * <ol>
  *   <li>把 koko 标为平台超级管理员，并在其没有密码时写入初始口令；</li>
- *   <li>建出店主账号（默认 shopadmin）；</li>
- *   <li>建出第一家店「日用铺」，并把店主写入店铺成员；</li>
+ *   <li>把 koko 同时挂成默认店铺「日用铺」的店主（不再另建 shopadmin 账号）；</li>
  *   <li>写入五组两级类目（家居清洁 / 厨房 / 收纳 / 个护 / 小百货）。</li>
  * </ol>
  *
@@ -60,13 +59,13 @@ public class MallDataInitializer implements ApplicationRunner {
     @Value("${owner.mall.bootstrap.admin-password:koko@2026}")
     private String adminPassword;
 
-    @Value("${owner.mall.bootstrap.owner-username:shopadmin}")
+    @Value("${owner.mall.bootstrap.owner-username:koko}")
     private String ownerUsername;
 
-    @Value("${owner.mall.bootstrap.owner-password:shop123}")
+    @Value("${owner.mall.bootstrap.owner-password:koko@2026}")
     private String ownerPassword;
 
-    @Value("${owner.mall.bootstrap.owner-mobile:13800000001}")
+    @Value("${owner.mall.bootstrap.owner-mobile:17535306390}")
     private String ownerMobile;
 
     @Value("${owner.mall.bootstrap.shop-name:日用铺}")
@@ -96,8 +95,13 @@ public class MallDataInitializer implements ApplicationRunner {
             }
             seedCategories(shop.getId());
             log.info("[MallBootstrap] 初始化完成：店铺「{}」(id={}) 店主={}", shop.getName(), shop.getId(), owner.getUsername());
-            log.info("[MallBootstrap] 默认口令：平台超管 {} / {}，店主 {} / {}（请尽快修改）",
-                    PLATFORM_ADMIN_USERNAME, adminPassword, owner.getUsername(), ownerPassword);
+            if (admin != null && admin.getId().equals(owner.getId())) {
+                log.info("[MallBootstrap] 平台超管与店主是同一个账号 {} / {}（请尽快修改）",
+                        PLATFORM_ADMIN_USERNAME, adminPassword);
+            } else {
+                log.info("[MallBootstrap] 默认口令：平台超管 {} / {}，店主 {} / {}（请尽快修改）",
+                        PLATFORM_ADMIN_USERNAME, adminPassword, owner.getUsername(), ownerPassword);
+            }
         } catch (Exception e) {
             log.error("[MallBootstrap] 初始化失败，不影响应用启动：{}", e.getMessage(), e);
         }
@@ -158,7 +162,7 @@ public class MallDataInitializer implements ApplicationRunner {
         shop.setContactMobile(ownerMobile);
         shop.setShipAddress(shipAddress);
         shop.setBusinessHours("每天 9:00 - 21:00");
-        shop.setPayNote("支持微信支付、支付宝，在线支付原路退回。");
+        shop.setPayNote("线下收款：下单后由店家联系确认，收款后在后台点「确认收款」即安排发货。");
         shop.setStatus(0);
         shop.setVersion(0);
         shopMapper.insert(shop);

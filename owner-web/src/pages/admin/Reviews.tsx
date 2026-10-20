@@ -1,13 +1,18 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Card, Empty, Rate, Select, Space, Skeleton, Table, Tag } from 'antd';
+import { Button, Card, Empty, Popconfirm, Rate, Select, Space, Skeleton, Table, Tag } from 'antd';
+import { DeleteOutlined } from '@ant-design/icons';
 import { adminReviewApi } from '@/api/admin';
 import SafeImage from '@/components/SafeImage';
-import { useAuthStore } from '@/store/auth';
+import { isShopOwner, useAuthStore } from '@/store/auth';
+import { toast } from '@/utils/feedback';
 import { dt } from '@/utils/format';
 import type { Review } from '@/types/mall';
 
 export default function AdminReviews() {
   const shopId = useAuthStore((state) => state.currentShopId) ?? '';
+  const shops = useAuthStore((state) => state.shops);
+  const owner = isShopOwner(shops, shopId);
+
   const [score, setScore] = useState<number | undefined>(undefined);
   const [rows, setRows] = useState<Review[]>([]);
   const [total, setTotal] = useState(0);
@@ -35,6 +40,18 @@ export default function AdminReviews() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  const remove = async (review: Review) => {
+    try {
+      await adminReviewApi.remove(shopId, String(review.id));
+      toast.success('评价已删除，该订单可以重新评价');
+      // 删掉最后一条时回到上一页，避免停在空白页
+      if (rows.length === 1 && pageNum > 1) setPageNum(pageNum - 1);
+      else await load();
+    } catch {
+      /* 拦截器已提示（例如不是店主） */
+    }
+  };
 
   return (
     <div>
@@ -107,14 +124,34 @@ export default function AdminReviews() {
                 ),
             },
             { title: '时间', width: 150, render: (_, r) => dt(r.createTime) },
+            {
+              title: '操作',
+              width: 100,
+              render: (_, r) => (
+                <Popconfirm
+                  title="删除这条评价？"
+                  description="用于处理广告、辱骂、泄露隐私，删掉后该订单可以重新评价"
+                  okText="删除"
+                  okButtonProps={{ danger: true }}
+                  disabled={!owner}
+                  onConfirm={() => void remove(r)}
+                >
+                  <Button size="small" danger icon={<DeleteOutlined />} disabled={!owner}>
+                    删除
+                  </Button>
+                </Popconfirm>
+              ),
+            },
           ]}
         />
       )}
 
       <Card style={{ marginTop: 16 }}>
-        <Tag color="blue">只读</Tag>
+        <Tag variant="filled" className="admin-tag admin-tag--muted">
+          仅可删除
+        </Tag>
         <span className="mall-card__meta">
-          评价一旦提交不可修改、不可删除，后台也没有删除入口；这是为了保住评价的真实性。
+          评价的内容和评分不能改，只能整条删除。删除记录会打日志，删错了让顾客重新评价即可；店员没有删除权限。
         </span>
       </Card>
     </div>

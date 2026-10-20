@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Button,
   Card,
@@ -13,13 +13,23 @@ import {
   Tag,
   Tooltip,
 } from 'antd';
-import { DeleteOutlined, PlusOutlined } from '@ant-design/icons';
+import {
+  CheckCircleFilled,
+  DeleteOutlined,
+  EditOutlined,
+  FileTextOutlined,
+  PlusOutlined,
+  PictureOutlined,
+  TagsOutlined,
+  InfoCircleOutlined,
+} from '@ant-design/icons';
 import { categoryApi, productApi } from '@/api/admin';
 import ImageUploader from '@/components/ImageUploader';
 import SafeImage from '@/components/SafeImage';
 import { useAuthStore } from '@/store/auth';
 import { toast } from '@/utils/feedback';
-import { dt, fenToYuanInput, money, productStatusColor, yuanToFen } from '@/utils/format';
+import { dt, fenToYuanInput, money, productStatusTone, yuanToFen } from '@/utils/format';
+import StatusTag from '@/components/StatusTag';
 import type { Category, ProductAdmin } from '@/types/mall';
 
 interface ProductForm {
@@ -33,9 +43,9 @@ interface ProductForm {
   skus: {
     id?: string;
     specName: string;
-    price: number;
+    price?: number;
     listPrice?: number;
-    stock: number;
+    stock?: number;
     skuCode?: string;
     weightGram?: number;
   }[];
@@ -69,6 +79,37 @@ export default function Products() {
   const [version, setVersion] = useState<number | undefined>(undefined);
   const [saving, setSaving] = useState(false);
   const [form] = Form.useForm<ProductForm>();
+
+  // 右侧预览卡片要跟着表单实时变，这几个值单独盯着
+  const watchName = Form.useWatch<string>('name', form);
+  const watchPoint = Form.useWatch<string>('sellingPoint', form);
+  const watchImages = Form.useWatch<string[]>('images', form);
+  const watchStatus = Form.useWatch<string>('status', form);
+  const watchCategory = Form.useWatch<string>('categoryId', form);
+  const watchSkus = Form.useWatch<ProductForm['skus']>('skus', form);
+
+  const preview = useMemo(() => {
+    const list = watchSkus ?? [];
+    const prices = list
+      .map((sku) => Number(sku?.price) || 0)
+      .filter((price) => price > 0);
+    const stock = list.reduce((sum, sku) => sum + (Number(sku?.stock) || 0), 0);
+    const images = (watchImages ?? []).filter((url) => url && url.trim());
+    return {
+      cover: images[0] ?? '',
+      priceText: prices.length ? `¥${Math.min(...prices).toFixed(2)}` : '¥ 定价',
+      skuCount: list.length,
+      stock,
+      imageCount: images.length,
+      checks: [
+        { label: '已选择类目', done: Boolean(watchCategory) },
+        { label: '已填写商品名称', done: Boolean(watchName?.trim()) },
+        { label: '已上传至少 1 张图片', done: images.length > 0 },
+        { label: '至少 1 个规格填了售价', done: prices.length > 0 },
+        { label: '可售库存大于 0', done: stock > 0 },
+      ],
+    };
+  }, [watchSkus, watchImages, watchName, watchCategory]);
 
   const load = useCallback(async () => {
     if (!shopId) return;
@@ -109,7 +150,7 @@ export default function Products() {
       status: 'DRAFT',
       sort: 0,
       images: [],
-      skus: [{ specName: '默认规格', price: 0, stock: 0 }],
+      skus: [{ specName: '默认规格' }],
     });
     setOpen(true);
   };
@@ -179,6 +220,18 @@ export default function Products() {
       /* 拦截器已提示 */
     } finally {
       setSaving(false);
+    }
+  };
+
+  const remove = async (record: ProductAdmin) => {
+    try {
+      await productApi.remove(shopId, String(record.id));
+      toast.success('商品已删除，规格与图片一并移除');
+      // 删掉本页最后一条时回退一页，别停在空白页
+      if (rows.length === 1 && pageNum > 1) setPageNum(pageNum - 1);
+      else await load();
+    } catch {
+      /* 拦截器已提示（例如还有未完结订单） */
     }
   };
 
@@ -268,12 +321,12 @@ export default function Products() {
           {
             title: '状态',
             width: 90,
-            render: (_, r) => <Tag color={productStatusColor(r.status)}>{r.statusLabel}</Tag>,
+            render: (_, r) => <StatusTag tone={productStatusTone(r.status)}>{r.statusLabel}</StatusTag>,
           },
           { title: '更新时间', width: 140, render: (_, r) => dt(r.updateTime) },
           {
             title: '操作',
-            width: 220,
+            width: 300,
             render: (_, r) => (
               <Space>
                 <Button size="small" onClick={() => void openEdit(r)}>
@@ -297,6 +350,17 @@ export default function Products() {
                     </Button>
                   </Tooltip>
                 )}
+                <Popconfirm
+                  title="删除这个商品？"
+                  description="商品、规格、图片都会移除，店里不再显示；有未完结订单时删不掉"
+                  okText="删除"
+                  okButtonProps={{ danger: true }}
+                  onConfirm={() => void remove(r)}
+                >
+                  <Button size="small" danger icon={<DeleteOutlined />}>
+                    删除
+                  </Button>
+                </Popconfirm>
               </Space>
             ),
           },
@@ -304,117 +368,248 @@ export default function Products() {
       />
 
       <Drawer
-        width={680}
+        size={1080}
+        className="pf-drawer"
+        destroyOnHidden
         open={open}
-        title={editingId ? '编辑商品' : '新建商品'}
         onClose={() => setOpen(false)}
-        extra={
-          <Space>
-            <Button onClick={() => setOpen(false)}>取消</Button>
-            <Button type="primary" loading={saving} onClick={() => void submit()}>
-              保存
-            </Button>
-          </Space>
+        title={
+          <div className="pf-head">
+            <span className="pf-head__badge">{editingId ? <EditOutlined /> : <PlusOutlined />}</span>
+            <span>
+              <span className="pf-head__title">{editingId ? '编辑商品' : '新建商品'}</span>
+              <span className="pf-head__sub">
+                {editingId ? '改动保存后立即生效' : '先填信息与规格，存草稿也能随时回来继续'}
+              </span>
+            </span>
+          </div>
+        }
+        footer={
+          <div className="pf-foot">
+            <span className="pf-foot__hint">
+              <InfoCircleOutlined />
+              {watchStatus === 'ON_SALE'
+                ? '保存后商品会立即在店面可见'
+                : '当前不会出现在店面，需要上架或改为「在售」'}
+            </span>
+            <Space>
+              <Button onClick={() => setOpen(false)}>取消</Button>
+              <Button type="primary" loading={saving} onClick={() => void submit()}>
+                {editingId ? '保存修改' : '创建商品'}
+              </Button>
+            </Space>
+          </div>
         }
       >
-        <Form form={form} layout="vertical">
-          <Form.Item
-            name="categoryId"
-            label="所属类目"
-            rules={[{ required: true, message: '请选择类目' }]}
-          >
-            <Select
-              showSearch
-              options={categoryOptions}
-              placeholder={categoryOptions.length ? '选择二级类目' : '请先到「店铺与分类」建类目'}
-            />
-          </Form.Item>
-          <Form.Item name="name" label="商品名称" rules={[{ required: true, message: '请输入名称' }]}>
-            <Input maxLength={60} />
-          </Form.Item>
-          <Form.Item name="sellingPoint" label="卖点">
-            <Input maxLength={60} placeholder="一句话说明，例如「三层加厚 不掉屑」" />
-          </Form.Item>
-          <Space size={12} style={{ display: 'flex' }}>
-            <Form.Item name="status" label="状态" style={{ minWidth: 160 }}>
-              <Select
-                options={[
-                  { value: 'DRAFT', label: '草稿' },
-                  { value: 'ON_SALE', label: '在售' },
-                  { value: 'OFF_SHELF', label: '下架' },
-                ]}
-              />
-            </Form.Item>
-            <Form.Item name="sort" label="排序（越小越靠前）" style={{ minWidth: 200 }}>
-              <InputNumber min={0} max={9999} style={{ width: '100%' }} />
-            </Form.Item>
-          </Space>
-          <Form.Item name="detail" label="图文详情">
-            <Input.TextArea rows={4} maxLength={2000} />
-          </Form.Item>
+        <Form form={form} layout="vertical" className="pf-form">
+          <div className="pf-body">
+            <div className="pf-main">
+              {/* ---------- 01 基本信息 ---------- */}
+              <section className="pf-block">
+                <header className="pf-block__head">
+                  <span className="pf-block__num">01</span>
+                  <div>
+                    <h3 className="pf-block__title">
+                      <FileTextOutlined /> 基本信息
+                    </h3>
+                    <p className="pf-block__desc">顾客最先看到的部分，名称和卖点尽量写清楚「是什么、解决什么」</p>
+                  </div>
+                </header>
 
-          <h3 style={{ fontSize: 14, fontWeight: 500, margin: '8px 0' }}>商品图片</h3>
-          <Form.Item
-            name="images"
-            rules={[{ required: true, message: '请至少上传 1 张商品图' }]}
-            style={{ marginBottom: 20 }}
-          >
-            <ImageUploader folder="product" max={8} tip="第一张为主图，建议 1:1，单张不超过 5 MB" />
-          </Form.Item>
+                <div className="pf-grid2">
+                  <Form.Item
+                    name="categoryId"
+                    label="所属类目"
+                    rules={[{ required: true, message: '请选择类目' }]}
+                  >
+                    <Select
+                      showSearch
+                      options={categoryOptions}
+                      placeholder={categoryOptions.length ? '选择二级类目' : '请先到「店铺与分类」建类目'}
+                    />
+                  </Form.Item>
+                  <Form.Item name="name" label="商品名称" rules={[{ required: true, message: '请输入名称' }]}>
+                    <Input maxLength={60} showCount placeholder="例如 抽取式厨房纸巾 3 卷" />
+                  </Form.Item>
+                </div>
 
-          <h3 style={{ fontSize: 14, fontWeight: 500, margin: '8px 0' }}>规格与库存</h3>
-          <Form.List name="skus">
-            {(fields, { add, remove }) => (
-              <>
-                {fields.map((field) => (
-                  <Card key={field.key} size="small" style={{ marginBottom: 10 }}>
-                    <Form.Item name={[field.name, 'id']} hidden>
-                      <Input />
-                    </Form.Item>
-                    <Space wrap>
-                      <Form.Item
-                        name={[field.name, 'specName']}
-                        label="规格名"
-                        rules={[{ required: true, message: '必填' }]}
-                        style={{ marginBottom: 8 }}
-                      >
-                        <Input placeholder="例如 500g/卷" style={{ width: 150 }} />
-                      </Form.Item>
-                      <Form.Item
-                        name={[field.name, 'price']}
-                        label="售价（元）"
-                        rules={[{ required: true, message: '必填' }]}
-                        style={{ marginBottom: 8 }}
-                      >
-                        <InputNumber min={0} precision={2} style={{ width: 120 }} />
-                      </Form.Item>
-                      <Form.Item name={[field.name, 'listPrice']} label="划线价（元）" style={{ marginBottom: 8 }}>
-                        <InputNumber min={0} precision={2} style={{ width: 120 }} />
-                      </Form.Item>
-                      <Form.Item name={[field.name, 'stock']} label="库存" style={{ marginBottom: 8 }}>
-                        <InputNumber min={0} style={{ width: 100 }} />
-                      </Form.Item>
-                      <Form.Item name={[field.name, 'skuCode']} label="货号" style={{ marginBottom: 8 }}>
-                        <Input placeholder="选填，店内唯一" style={{ width: 130 }} />
-                      </Form.Item>
-                      <Form.Item name={[field.name, 'weightGram']} label="重量(g)" style={{ marginBottom: 8 }}>
-                        <InputNumber min={0} style={{ width: 100 }} />
-                      </Form.Item>
+                <Form.Item name="sellingPoint" label="卖点" className="pf-span2">
+                  <Input maxLength={60} showCount placeholder="一句话说明，例如「三层加厚 不掉屑」" />
+                </Form.Item>
+
+                <div className="pf-grid2">
+                  <Form.Item name="status" label="状态">
+                    <Select
+                      options={[
+                        { value: 'DRAFT', label: '草稿（店面不可见）' },
+                        { value: 'ON_SALE', label: '在售（店面可见）' },
+                        { value: 'OFF_SHELF', label: '下架' },
+                      ]}
+                    />
+                  </Form.Item>
+                  <Form.Item name="sort" label="排序" extra="数字越小越靠前，0 为默认">
+                    <InputNumber min={0} max={9999} style={{ width: '100%' }} />
+                  </Form.Item>
+                </div>
+              </section>
+
+              {/* ---------- 02 商品图片 ---------- */}
+              <section className="pf-block">
+                <header className="pf-block__head">
+                  <span className="pf-block__num">02</span>
+                  <div>
+                    <h3 className="pf-block__title">
+                      <PictureOutlined /> 商品图片
+                    </h3>
+                    <p className="pf-block__desc">第一张作为主图用在列表、购物车和订单里，建议 1:1 白底或场景图</p>
+                  </div>
+                  <span className="pf-block__count">{preview.imageCount} / 8</span>
+                </header>
+                <Form.Item
+                  name="images"
+                  rules={[{ required: true, message: '请至少上传 1 张商品图' }]}
+                  style={{ marginBottom: 0 }}
+                >
+                  <ImageUploader folder="product" max={8} tip="单张不超过 5 MB，支持 jpg / png / webp" />
+                </Form.Item>
+              </section>
+
+              {/* ---------- 03 图文详情 ---------- */}
+              <section className="pf-block">
+                <header className="pf-block__head">
+                  <span className="pf-block__num">03</span>
+                  <div>
+                    <h3 className="pf-block__title">
+                      <FileTextOutlined /> 图文详情
+                    </h3>
+                    <p className="pf-block__desc">规格参数、使用场景、注意事项，写清楚能少很多售后咨询</p>
+                  </div>
+                </header>
+                <Form.Item name="detail" style={{ marginBottom: 0 }}>
+                  <Input.TextArea rows={6} maxLength={2000} showCount placeholder="例如：材质、尺寸、适用场景、注意事项……" />
+                </Form.Item>
+              </section>
+
+              {/* ---------- 04 规格与库存 ---------- */}
+              <section className="pf-block">
+                <header className="pf-block__head">
+                  <span className="pf-block__num">04</span>
+                  <div>
+                    <h3 className="pf-block__title">
+                      <TagsOutlined /> 规格与库存
+                    </h3>
+                    <p className="pf-block__desc">一种商品多个规格时分别定价与库存；只有「在售且可售库存 &gt; 0」才卖得动</p>
+                  </div>
+                  <span className="pf-block__count">{preview.skuCount} 个规格</span>
+                </header>
+
+                <Form.List name="skus">
+                  {(fields, { add, remove }) => (
+                    <div className="pf-skus">
+                      {fields.map((field, index) => (
+                        <div className="pf-sku" key={field.key}>
+                          <div className="pf-sku__head">
+                            <span className="pf-sku__index">规格 {index + 1}</span>
+                            <Button
+                              type="text"
+                              size="small"
+                              danger
+                              icon={<DeleteOutlined />}
+                              disabled={fields.length <= 1}
+                              onClick={() => remove(field.name)}
+                            >
+                              删除
+                            </Button>
+                          </div>
+                          <Form.Item name={[field.name, 'id']} hidden>
+                            <Input />
+                          </Form.Item>
+                          <div className="pf-sku__grid">
+                            <Form.Item
+                              name={[field.name, 'specName']}
+                              label="规格名"
+                              rules={[{ required: true, message: '必填' }]}
+                            >
+                              <Input placeholder="例如 500g/卷" />
+                            </Form.Item>
+                            <Form.Item
+                              name={[field.name, 'price']}
+                              label="售价（元）"
+                              rules={[{ required: true, message: '必填' }]}
+                            >
+                              <InputNumber min={0} precision={2} style={{ width: '100%' }} placeholder="0.00" />
+                            </Form.Item>
+                            <Form.Item name={[field.name, 'listPrice']} label="划线价（元）">
+                              <InputNumber min={0} precision={2} style={{ width: '100%' }} placeholder="选填" />
+                            </Form.Item>
+                            <Form.Item name={[field.name, 'stock']} label="库存">
+                              <InputNumber min={0} style={{ width: '100%' }} placeholder="0" />
+                            </Form.Item>
+                            <Form.Item name={[field.name, 'skuCode']} label="货号">
+                              <Input placeholder="选填，店内唯一" />
+                            </Form.Item>
+                            <Form.Item name={[field.name, 'weightGram']} label="重量（g）">
+                              <InputNumber min={0} style={{ width: '100%' }} placeholder="选填" />
+                            </Form.Item>
+                          </div>
+                        </div>
+                      ))}
                       <Button
-                        danger
-                        icon={<DeleteOutlined />}
-                        disabled={fields.length <= 1}
-                        onClick={() => remove(field.name)}
-                      />
-                    </Space>
-                  </Card>
-                ))}
-                <Button icon={<PlusOutlined />} onClick={() => add({ specName: '', price: 0, stock: 0 })}>
-                  添加规格
-                </Button>
-              </>
-            )}
-          </Form.List>
+                        type="dashed"
+                        block
+                        icon={<PlusOutlined />}
+                        className="pf-add-sku"
+                        onClick={() => add({ specName: '' })}
+                      >
+                        添加规格
+                      </Button>
+                    </div>
+                  )}
+                </Form.List>
+              </section>
+            </div>
+
+            {/* ---------------------------- 右侧：预览 + 检查 ---------------------------- */}
+            <aside className="pf-side">
+              <div className="pf-side__label">店面预览</div>
+              <div className="pf-preview">
+                <div className={`pf-preview__media${preview.cover ? '' : ' is-empty'}`}>
+                  {preview.cover ? (
+                    <SafeImage src={preview.cover} alt="" />
+                  ) : (
+                    <span className="pf-preview__empty">
+                      <PictureOutlined />
+                      主图待上传
+                    </span>
+                  )}
+                  {watchStatus === 'ON_SALE' && <em className="pf-preview__flag">在售</em>}
+                </div>
+                <div className="pf-preview__body">
+                  <div className="pf-preview__name">{watchName?.trim() || '商品名称'}</div>
+                  <div className="pf-preview__point">
+                    {watchPoint?.trim() || '一句话卖点会显示在这里'}
+                  </div>
+                  <div className="pf-preview__row">
+                    <span className="pf-preview__price">{preview.priceText}</span>
+                    <span className="pf-preview__meta">可售 {preview.stock}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pf-checks">
+                <div className="pf-checks__title">上架检查</div>
+                <ul>
+                  {preview.checks.map((item) => (
+                    <li key={item.label} className={item.done ? 'is-done' : ''}>
+                      <CheckCircleFilled />
+                      {item.label}
+                    </li>
+                  ))}
+                </ul>
+                <p className="pf-checks__tip">五项齐全后把状态改为「在售」即可上架</p>
+              </div>
+            </aside>
+          </div>
         </Form>
       </Drawer>
     </div>

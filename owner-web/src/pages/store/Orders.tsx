@@ -23,13 +23,14 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { orderApi, refundApi, reviewApi } from '@/api/mall';
 import SafeImage from '@/components/SafeImage';
+import StatusTag from '@/components/StatusTag';
 import { toast } from '@/utils/feedback';
 import {
   dt,
   money,
   num,
-  orderStatusColor,
-  refundStatusColor,
+  orderStatusTone,
+  refundStatusTone,
 } from '@/utils/format';
 import type { OrderDetail, OrderSummary, Refund } from '@/types/mall';
 
@@ -170,7 +171,7 @@ export default function Orders() {
             title={
               <Space size={12}>
                 <span>{order.orderNo}</span>
-                <Tag color={orderStatusColor(order.status)}>{order.statusLabel}</Tag>
+                <StatusTag tone={orderStatusTone(order.status)}>{order.statusLabel}</StatusTag>
               </Space>
             }
             extra={<span className="mall-card__meta">{dt(order.createTime)}</span>}
@@ -273,7 +274,7 @@ export default function Orders() {
             <Descriptions column={1} size="small" bordered>
               <Descriptions.Item label="订单号">{detail.summary.orderNo}</Descriptions.Item>
               <Descriptions.Item label="状态">
-                <Tag color={orderStatusColor(detail.summary.status)}>{detail.summary.statusLabel}</Tag>
+                <StatusTag tone={orderStatusTone(detail.summary.status)}>{detail.summary.statusLabel}</StatusTag>
               </Descriptions.Item>
               <Descriptions.Item label="店铺">{detail.summary.shopName}</Descriptions.Item>
               <Descriptions.Item label="收货人">
@@ -326,9 +327,9 @@ export default function Orders() {
                   showIcon
                   message={
                     <Space>
-                      <Tag color={refundStatusColor(refundOfOrder.status)}>
+                      <StatusTag tone={refundStatusTone(refundOfOrder.status)}>
                         {refundOfOrder.statusLabel}
-                      </Tag>
+                      </StatusTag>
                       {refundOfOrder.typeLabel} · {money(refundOfOrder.refundAmount)}
                     </Space>
                   }
@@ -394,7 +395,7 @@ export default function Orders() {
           message="售后按整单处理"
           description={
             refundOrder?.status === 'PENDING_SHIPMENT'
-              ? '当前订单未发货，只能申请「仅退款」。店主同意后原路退回并恢复库存。'
+              ? '当前订单未发货，只能申请「仅退款」。店主同意后线下退回并恢复库存。'
               : '当前订单已发货，请申请「退货退款」。店主同意后会给出退货地址，你寄回并填写运单号，店主确认收货后退款。'
           }
         />

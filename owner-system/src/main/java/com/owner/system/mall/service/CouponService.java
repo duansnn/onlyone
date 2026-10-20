@@ -213,6 +213,34 @@ public class CouponService {
         return rows;
     }
 
+    /**
+     * 顾客删除自己的一张券。
+     *
+     * <p>券攒多了想清理列表：这里是逻辑删除，记录仍在库里；同时把券的领取计数减一，
+     * 相当于「不想要了，把名额退回券池」，别人（或自己）还能再领。</p>
+     *
+     * <p>正在被订单占用的券（LOCKED）和已经核销的券（USED）不允许删除，
+     * 免得订单还在挂着、或者把核销记录抹掉。</p>
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteMine(Long couponUserId) {
+        Long userId = MallCurrentUser.requireUserId();
+        CouponUser record = requireOwnCouponUser(userId, couponUserId);
+        CouponUserStatus status = CouponUserStatus.of(record.getStatus());
+        if (status == CouponUserStatus.LOCKED) {
+            throw new ServiceException(ResultCode.BUSINESS_ERROR, "这张券正在订单里占用，暂时不能删除");
+        }
+        if (status == CouponUserStatus.USED) {
+            throw new ServiceException(ResultCode.BUSINESS_ERROR, "已使用的券保留在记录里，不能删除");
+        }
+        if (couponUserMapper.deleteById(record.getId()) == 0) {
+            throw new ServiceException(ResultCode.BUSINESS_ERROR, "删除失败，请刷新后重试");
+        }
+        couponMapper.decreaseReceived(record.getCouponId());
+        log.info("[Coupon] 顾客删除券 userId={}, couponUserId={}, status={}",
+                userId, record.getId(), record.getStatus());
+    }
+
     /** 结算时可用的券：门槛已满足、在有效期内、状态可再用，且属于本店 */
     public List<CouponUserVO> usableCoupons(Long userId, Long shopId, long goodsAmount) {
         List<CouponUser> records = couponUserMapper.selectList(Wrappers.<CouponUser>lambdaQuery()
@@ -308,6 +336,7 @@ public class CouponService {
             throw new ServiceException(ResultCode.BUSINESS_ERROR, "优惠券还没到可领取时间");
         }
         int perUserLimit = coupon.getPerUserLimit() == null ? 1 : coupon.getPerUserLimit();
+        // 只数还留着的券：领了又自己删掉，等于把券退回去，可以再领
         long mine = couponUserMapper.selectCount(Wrappers.<CouponUser>lambdaQuery()
                 .eq(CouponUser::getCouponId, couponId)
                 .eq(CouponUser::getUserId, userId));

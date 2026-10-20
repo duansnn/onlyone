@@ -1,11 +1,12 @@
 /**
  * 店铺后台 + 平台端接口。
  */
-import { get, post, put } from './request';
+import { del, get, post, put } from './request';
 import type {
   Category,
   Coupon,
   CouponSave,
+  CustomerDetail,
   OrderDetail,
   OrderSummary,
   Paged,
@@ -36,8 +37,12 @@ export const shopApi = {
     shopId: string,
     data: { mobile: string; password: string; nickname: string; role: string },
   ) => post<ShopMember>(`/shop/${shopId}/members`, data),
-  updateMember: (shopId: string, memberId: string, data: { role: string; status: number }) =>
-    put<ShopMember>(`/shop/${shopId}/members/${memberId}`, data),
+  /** 改角色 / 启停，或改昵称、手机号（登录账号同步）、重置密码；字段都可选 */
+  updateMember: (
+    shopId: string,
+    memberId: string,
+    data: { role?: string; status?: number; nickname?: string; mobile?: string; password?: string },
+  ) => put<void>(`/shop/${shopId}/members/${memberId}`, data),
 };
 
 /* ------------------------------- 类目 ------------------------------- */
@@ -64,6 +69,8 @@ export const productApi = {
     put<ProductAdminDetail>(`/shop/${shopId}/products/${productId}`, data),
   setStatus: (shopId: string, productId: string, status: string) =>
     put<void>(`/shop/${shopId}/products/${productId}/status`, undefined, { status }),
+  /** 逻辑删除：有未完结订单时后端会拒绝 */
+  remove: (shopId: string, productId: string) => del<void>(`/shop/${shopId}/products/${productId}`),
 };
 
 /* ------------------------------- 库存 ------------------------------- */
@@ -121,6 +128,8 @@ export const adminRefundApi = {
 export const adminReviewApi = {
   page: (shopId: string, params?: { score?: number } & PageQuery) =>
     get<Paged<Review>>(`/shop/${shopId}/reviews`, params),
+  /** 仅店主可删；用于处理广告、辱骂、泄露隐私 */
+  remove: (shopId: string, reviewId: string) => del<void>(`/shop/${shopId}/reviews/${reviewId}`),
 };
 
 /* ------------------------------ 优惠券 ------------------------------ */
@@ -133,6 +142,22 @@ export const adminCouponApi = {
     put<void>(`/shop/${shopId}/coupons/${couponId}/status`, undefined, { status }),
   grant: (shopId: string, couponId: string, mobile: string) =>
     post<void>(`/shop/${shopId}/coupons/${couponId}/grant`, undefined, { mobile }),
+};
+
+/* ---------------------------- 顾客管理 ---------------------------- */
+
+/**
+ * 顾客管理（单商家模式，只有店主能调）。
+ * 接口路径仍在 /platform/users 下，是为了不改后端既有契约，语义上就是「我的顾客」。
+ */
+export const customerApi = {
+  page: (params?: { keyword?: string; status?: number } & PageQuery) =>
+    get<Paged<PlatformUser>>('/platform/users', params),
+  detail: (userId: string) => get<CustomerDetail>(`/platform/users/${userId}`),
+  setStatus: (userId: string, status: number) =>
+    put<void>(`/platform/users/${userId}/status`, undefined, { status }),
+  resetPassword: (userId: string, password: string) =>
+    put<void>(`/platform/users/${userId}/password`, { password }),
 };
 
 /* ------------------------------- 平台 ------------------------------- */

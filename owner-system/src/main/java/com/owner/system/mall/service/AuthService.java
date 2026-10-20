@@ -12,6 +12,7 @@ import com.owner.system.mall.domain.dto.RegisterDTO;
 import com.owner.system.mall.domain.dto.UpdateProfileDTO;
 import com.owner.system.mall.domain.entity.Shop;
 import com.owner.system.mall.domain.entity.ShopMember;
+import com.owner.system.mall.domain.enums.MallRole;
 import com.owner.system.mall.domain.enums.ShopRole;
 import com.owner.system.mall.domain.vo.AuthUserVO;
 import com.owner.system.mall.domain.vo.LoginVO;
@@ -278,7 +279,24 @@ public class AuthService {
     }
 
     private AuthUserVO toAuthUser(SysUser user) {
+        MallRole role = roleOf(user);
         return new AuthUserVO(user.getId(), user.getUsername(), user.getNickname(),
-                user.getMobile(), user.getEmail(), user.getAvatarUrl(), isAdmin(user));
+                user.getMobile(), user.getEmail(), user.getAvatarUrl(),
+                role.name(), role.getLabel(), role.isMerchant());
+    }
+
+    /**
+     * 角色判定：平台超管（koko）是店主；此外在该店有成员身份的人也按店主处理，
+     * 兼容早期「平台超管 + 店铺成员」两套身份并存的数据。
+     * 其余一律是顾客。
+     */
+    private MallRole roleOf(SysUser user) {
+        if (isAdmin(user)) {
+            return MallRole.MERCHANT;
+        }
+        Long memberCount = shopMemberMapper.selectCount(Wrappers.<ShopMember>lambdaQuery()
+                .eq(ShopMember::getUserId, user.getId())
+                .eq(ShopMember::getStatus, MEMBER_ENABLED));
+        return memberCount != null && memberCount > 0 ? MallRole.MERCHANT : MallRole.CUSTOMER;
     }
 }

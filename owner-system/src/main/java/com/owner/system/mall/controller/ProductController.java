@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -22,7 +23,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * 店铺后台-商品：新建、编辑、上下架。删除用停用，不物理删除。
+ * 店铺后台-商品：新建、编辑、上下架、删除。
  */
 @RestController
 @RequestMapping("/api/shop/{shopId}/products")
@@ -70,6 +71,14 @@ public class ProductController {
                              @PathVariable Long productId,
                              @Parameter(description = "ON_SALE / OFF_SHELF") @RequestParam String status) {
         productService.setStatus(shopId, productId, status);
+        return R.ok();
+    }
+
+    @Operation(summary = "删除商品",
+            description = "逻辑删除，规格与主图一并标记删除；有未完结订单时拒绝")
+    @DeleteMapping("/{productId}")
+    public R<Void> delete(@PathVariable Long shopId, @PathVariable Long productId) {
+        productService.delete(shopId, productId);
         return R.ok();
     }
 }

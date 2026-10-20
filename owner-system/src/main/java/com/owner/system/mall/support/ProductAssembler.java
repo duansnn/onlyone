@@ -68,11 +68,33 @@ public class ProductAssembler {
                 sku.getWeightGram(), sku.getStatus(), skuStatusLabel(sku.getStatus()));
     }
 
+    /**
+     * 顾客端规格：<b>不下发划线价</b>。
+     * <p>商品的成本价、划线价是店主自己看的经营数据，顾客只该看到最终售价，
+     * 所以这里把 listPrice 置空，配合 {@code SkuVO} 上的 {@code NON_NULL} 直接不输出该字段。</p>
+     */
+    public SkuVO toStoreSkuVo(ProductSku sku) {
+        return new SkuVO(sku.getId(), sku.getSpecName(), sku.getPrice(), null,
+                sku.getStock(), sku.getLockedStock(), sku.availableStock(), sku.getSkuCode(),
+                sku.getWeightGram(), sku.getStatus(), skuStatusLabel(sku.getStatus()));
+    }
+
     public List<SkuVO> toSkuVoList(Collection<ProductSku> skus) {
         List<SkuVO> rows = new ArrayList<>();
         if (skus != null) {
             for (ProductSku sku : skus) {
                 rows.add(toSkuVo(sku));
+            }
+        }
+        return rows;
+    }
+
+    /** 顾客端规格列表，见 {@link #toStoreSkuVo} */
+    public List<SkuVO> toStoreSkuVoList(Collection<ProductSku> skus) {
+        List<SkuVO> rows = new ArrayList<>();
+        if (skus != null) {
+            for (ProductSku sku : skus) {
+                rows.add(toStoreSkuVo(sku));
             }
         }
         return rows;

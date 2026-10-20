@@ -66,7 +66,8 @@ public class ShopAdminController {
         return R.ok(shopService.addMember(shopId, dto));
     }
 
-    @Operation(summary = "变更成员角色 / 启用停用", description = "仅店主；一家店至少保留一名店主")
+    @Operation(summary = "变更成员资料 / 角色 / 启停",
+            description = "仅店主；可改昵称、手机号（登录账号同步）、重置密码，一家店至少保留一名店主")
     @PutMapping("/{shopId}/members/{memberId}")
     public R<Void> updateMember(@PathVariable Long shopId,
                                 @PathVariable Long memberId,

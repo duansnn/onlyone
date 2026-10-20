@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>日用铺 · 品牌标识</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 56px 56px 72px;
+    background: #f7f3ed;
+    font-family: 'Inter', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    color: #17130f;
+    -webkit-font-smoothing: antialiased;
+  }
+  .head { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 34px; }
+  .head h1 { margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -.01em; }
+  .head p { margin: 6px 0 0; font-size: 13px; color: #8a8178; }
+  .head .tag {
+    font-size: 11px; font-weight: 700; letter-spacing: .18em; color: #b3a89c;
+    border: 1px solid #e6ddd2; border-radius: 999px; padding: 6px 14px;
+  }
+  h2 { font-size: 11px; letter-spacing: .22em; color: #a89e93; font-weight: 700; margin: 0 0 14px; }
+
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 34px; }
+  .panel { border-radius: 26px; padding: 40px; display: flex; align-items: center; justify-content: center; min-height: 200px; }
+  .light { background: #fff; border: 1px solid #eee5d9; }
+  .dark { background: #17130f; }
+  .warm { background: linear-gradient(150deg, #ff8a4c, #ee4a13); }
+
+  .lock { display: flex; align-items: center; gap: 15px; }
+  .lock img.mark { width: 68px; height: 68px; display: block; }
+  .lock__t { display: flex; flex-direction: column; line-height: 1; }
+  .lock__n { font-size: 31px; font-weight: 800; letter-spacing: .02em; }
+  .lock__s { margin-top: 8px; font-size: 9.5px; font-weight: 700; letter-spacing: .32em; color: #8a8178; }
+  .dark .lock__n { color: #fff; }
+  .dark .lock__s { color: #9c9288; }
+  .warm .lock__n { color: #fff; }
+  .warm .lock__s { color: rgba(255,255,255,.75); }
+
+  /* 真实页头模拟 */
+  .mock {
+    background: #fff; border: 1px solid #eee5d9; border-radius: 26px;
+    padding: 18px 24px; margin-bottom: 34px;
+    display: flex; align-items: center; gap: 22px;
+  }
+  .mock .brand { display: flex; align-items: center; gap: 12px; }
+  .mock .brand img { width: 42px; height: 42px; display: block; filter: drop-shadow(0 10px 16px rgba(255,90,31,.28)); }
+  .mock .brand .n { font-size: 19px; font-weight: 800; letter-spacing: .01em; display: block; line-height: 1.1; }
+  .mock .brand .s { font-size: 9px; font-weight: 700; letter-spacing: .26em; color: #9a9187; display: block; margin-top: 4px; }
+  .mock .search { flex: 1; height: 40px; border-radius: 999px; background: #f4efe8; display: flex; align-items: center; padding: 0 18px; color: #a9a096; font-size: 13px; }
+  .mock .btn { height: 40px; padding: 0 22px; border-radius: 999px; background: #ff5a1f; color: #fff; font-size: 13px; font-weight: 700; display: flex; align-items: center; }
+  .mock .plain { font-size: 13px; font-weight: 600; color: #3f3831; }
+
+  .sizes { display: flex; align-items: flex-end; gap: 34px; }
+  .sizes figure { margin: 0; text-align: center; }
+  .sizes figcaption { margin-top: 12px; font-size: 11px; color: #a89e93; font-variant-numeric: tabular-nums; }
+  .sizes img { display: block; }
+
+  .mono { display: flex; gap: 34px; align-items: center; justify-content: center; }
+  .mono figure { margin: 0; text-align: center; }
+  .mono figcaption { margin-top: 10px; font-size: 11px; color: rgba(255,255,255,.72); }
+
+  .sw { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 34px; }
+  .sw div { background: #fff; border: 1px solid #eee5d9; border-radius: 18px; padding: 14px; }
+  .sw b { display: block; height: 62px; border-radius: 11px; margin-bottom: 12px; }
+  .sw em { display: block; font-style: normal; font-size: 12.5px; font-weight: 700; margin-bottom: 3px; }
+  .sw span { font-size: 11px; color: #9a9187; font-family: ui-monospace, Menlo, Consolas, monospace; }
+
+  .note { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .note div { background: #fff; border: 1px solid #eee5d9; border-radius: 18px; padding: 22px; }
+  .note h3 { margin: 0 0 8px; font-size: 13.5px; font-weight: 800; }
+  .note p { margin: 0; font-size: 12.5px; line-height: 1.75; color: #6f675e; }
+</style>
+</head>
+<body>
+  <div class="head">
+    <div>
+      <h1>日用铺 · 品牌标识</h1>
+      <p>日 · 屋顶 · 小店：一间抬头就能认出来的杂货铺</p>
+    </div>
+    <div class="tag">BRAND / 2026</div>
+  </div>
+
+  <h2>标识在页头里的样子</h2>
+  <div class="mock">
+    <div class="brand">
+      <img src="/brand/logo-mark.svg" alt="">
+      <span>
+        <span class="n">日用铺</span>
+        <span class="s">DAILY GOODS STORE</span>
+      </span>
+    </div>
+    <div class="search">搜索清洁、厨房、收纳好物…</div>
+    <div class="btn">搜索</div>
+    <div class="plain">全部商品</div>
+    <div class="plain">我的订单</div>
+  </div>
+
+  <h2>横版锁定 · 深浅两种底色</h2>
+  <div class="grid2">
+    <div class="panel light">
+      <div class="lock">
+        <img class="mark" src="/brand/logo-mark.svg" alt="">
+        <span class="lock__t">
+          <span class="lock__n">日用铺</span>
+          <span class="lock__s">DAILY GOODS STORE</span>
+        </span>
+      </div>
+    </div>
+    <div class="panel dark">
+      <div class="lock">
+        <img class="mark" src="/brand/logo-mark.svg" alt="">
+        <span class="lock__t">
+          <span class="lock__n">日用铺</span>
+          <span class="lock__s">DAILY GOODS STORE</span>
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <h2>缩放 · 从 App 图标到浏览器页签</h2>
+  <div class="grid2">
+    <div class="panel light">
+      <div class="sizes">
+        <figure><img src="/brand/logo-mark.svg" width="112" height="112"><figcaption>112</figcaption></figure>
+        <figure><img src="/brand/logo-mark.svg" width="64" height="64"><figcaption>64</figcaption></figure>
+        <figure><img src="/brand/logo-mark.svg" width="40" height="40"><figcaption>40</figcaption></figure>
+        <figure><img src="/brand/logo-mark.svg" width="28" height="28"><figcaption>28</figcaption></figure>
+        <figure><img src="/brand/logo-mark.svg" width="16" height="16"><figcaption>16</figcaption></figure>
+      </div>
+    </div>
+    <div class="panel warm">
+      <div class="mono">
+        <figure><img src="/brand/logo-mark-light.svg" width="92" height="92"><figcaption>反白 92</figcaption></figure>
+        <figure><img src="/brand/logo-mark-light.svg" width="44" height="44"><figcaption>反白 44</figcaption></figure>
+        <figure><img src="/brand/logo-mark-light.svg" width="22" height="22"><figcaption>反白 22</figcaption></figure>
+      </div>
+    </div>
+  </div>
+
+  <h2>色彩</h2>
+  <div class="sw">
+    <div><b style="background:linear-gradient(140deg,#ffa564,#ff6a2b 48%,#ea4210)"></b><em>品牌橙</em><span>#FF6A2B → #EA4210</span></div>
+    <div><b style="background:#ff5a1f"></b><em>强调橙</em><span>#FF5A1F</span></div>
+    <div><b style="background:#17130f"></b><em>墨黑</em><span>#17130F</span></div>
+    <div><b style="background:#f7f3ed;border:1px solid #eee5d9"></b><em>米白</em><span>#F7F3ED</span></div>
+  </div>
+
+  <h2>标识说明</h2>
+  <div class="note">
+    <div>
+      <h3>一间小店</h3>
+      <p>坡屋顶盖住方正的墙体，是最容易一眼认出的「店」。屋檐两边比墙体宽一点点，像门口挑出来的招牌。</p>
+    </div>
+    <div>
+      <h3>里面是「日」</h3>
+      <p>屋顶就是「日」的顶横，墙体是左右两竖，中间再一道横：屋顶 + 日，一个图形读完品牌名第一个字。</p>
+    </div>
+    <div>
+      <h3>只用一个色</h3>
+      <p>白色线条画在品牌橙上，缩到 16px 仍是一片干净的剪影；反白版用于深色和图片底，单色版用于印刷与单据。</p>
+    </div>
+  </div>
+</body>
+</html>

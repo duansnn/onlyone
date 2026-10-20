@@ -66,7 +66,8 @@ onlyone
 
 ## 2. 领域模型：只有两种长期实体
 
-**用户** 和 **店铺**。商户不是第三套账号体系——一个人管哪家店由 `shop_member` 决定。
+**用户** 和 **店铺**。单商家模式下只有一个店铺（日用铺）、一个店主（koko），
+顾客可以有很多，全部走同一个登录入口，按 `role` 分流。多店铺/店员能力保留在底层，界面已收起。
 
 ```
 sys_user ──┬── shop_member ──┐            shop ──┬── category（两级）
@@ -82,16 +83,23 @@ sys_user ──┬── shop_member ──┐            shop ──┬── c
 
 三种身份，一个登录入口，按身份路由：
 
-| 身份 | 判定 | 能做什么 |
+| 角色 | 判定 | 能做什么 |
 | --- | --- | --- |
-| 顾客 | 任意注册用户 | 逛店、下单、售后、评价、领券 |
-| 店主 / 店员 | `shop_member.role = OWNER / STAFF` | 管自己那家店的商品、库存、订单、售后、优惠券 |
-| 平台超管 | `sys_user.platform_admin = 1`（koko） | 建店、管店铺状态、管全站用户 |
+| 店主（`MERCHANT`） | `sys_user.platform_admin = 1`（koko），或 `shop_member` 里有成员记录 | 进店铺后台：商品、库存、订单、售后、优惠券、顾客管理、店铺资料 |
+| 顾客（`CUSTOMER`） | 其余全部注册用户 | 逛店面、下单、看自己的订单、售后、评价、领券；<b>看不到也调不到任何经营接口</b> |
+
+> **2026-10-20 起是单商家模式**：本站只有 koko 一个店主，顾客可以有很多。
+> 登录接口返回的 `user.role` 是唯一身份判断依据（`MERCHANT` / `CUSTOMER`），
+> 前端三层守卫（`RequireAuth` / `RequireShop` / `RequireMAuth`）都按它判断。
+> `shop_member`、多店铺、店员这些能力**底层保留**（数据库表与接口都在），
+> 但界面上的多店铺切换、店员管理、平台店铺管理入口已收起；
+> `/api/platform/**` 里的经营接口现在只校验「是不是店主」。
+
 
 启动引导 `MallDataInitializer` 首次启动会自动补齐：
 
 - `koko` 设为平台超管并写入 BCrypt 口令（默认 `koko@2026`）
-- 店主账号 `shopadmin`（默认 `shop123`），并加入「日用铺」为 `OWNER`
+- `koko` 同时作为「日用铺」的 `OWNER`（不再另建 `shopadmin`，店主与平台超管是同一个账号）
 - 店铺「日用铺」
 - 5 组一级类目 + 每组 3 个二级类目（共 20 个）
 - 店铺发货地址（售后退货默认用它，店主应在「店铺资料」里改成真实地址）
@@ -115,7 +123,7 @@ sys_user ──┬── shop_member ──┐            shop ──┬── c
    （`to_status=REFUNDING` 那条的 `from_status`），拒绝时反查恢复，
    **不要**给 `refund` 表加字段。
 10. **一句话只对应一个订单状态**（`order_info.status`），不在多个字段里各存一份。
-11. **评价一笔订单一条**，提交后不可改不可删；店铺后台只读，无删除入口。
+11. **评价一笔订单一条**，顾客提交后不可改；店主可整条删除（处理广告 / 辱骂 / 泄露隐私），店员没有删除权限。
 12. **账号与口令**：口令只用 BCrypt；连续 5 次失败锁 15 分钟（Redis 计数）；
     接口不泄露账号是否存在，统一返回「账号或密码不正确」；手机号在列表里打星。
 
@@ -214,7 +222,7 @@ curl -X POST $BASE/api/auth/register -H 'Content-Type: application/json' \
 
 # 登录（account 可填 username 或 mobile），拿 token
 TOKEN=$(curl -s -X POST $BASE/api/auth/login -H 'Content-Type: application/json' \
-  -d '{"account":"shopadmin","password":"shop123"}' | grep -o '"token":"[^"]*"' | cut -d'"' -f4)
+  -d '{"account":"koko","password":"koko@2026"}' | grep -o '"token":"[^"]*"' | cut -d'"' -f4)
 
 # 店面首页（公开，无需登录）；shopId 见启动日志 [MallBootstrap] 一行，
 #   或平台超管调 GET /api/platform/shops
@@ -291,7 +299,7 @@ PUT 回传   2110285652501422000
 | 订单 | `POST /api/order/preview`、`POST /api/order/submit`、`GET /api/order/mine`、`GET /api/order/{orderId}`、`POST /api/order/{orderId}/cancel`、`POST /api/order/{orderId}/confirm`、`GET /api/order/options` |
 | 售后 | `POST /api/refund/orders/{orderId}`、`GET /api/refund/mine`、`GET /api/refund/{refundId}`、`POST /api/refund/{refundId}/return-ship`、`GET /api/refund/options` |
 | 评价 | `POST /api/review`、`GET /api/review/orders/{orderId}` |
-| 优惠券 | `GET /api/coupon/center`、`POST /api/coupon/{couponId}/receive`、`GET /api/coupon/mine`、`GET /api/coupon/usable` |
+| 优惠券 | `GET /api/coupon/center`、`POST /api/coupon/{couponId}/receive`、`GET /api/coupon/mine`、`DELETE /api/coupon/mine/{couponUserId}`、`GET /api/coupon/usable` |
 
 ### 通用
 
@@ -305,19 +313,23 @@ PUT 回传   2110285652501422000
 | --- | --- |
 | 店铺 | `GET /api/shop/{shopId}/dashboard`、`GET/PUT /api/shop/{shopId}/profile`、`GET/POST /api/shop/{shopId}/members`、`PUT /api/shop/{shopId}/members/{memberId}` |
 | 类目 | `GET/POST /api/shop/{shopId}/categories`、`PUT /api/shop/{shopId}/categories/{categoryId}/status` |
-| 商品 | `GET/POST /api/shop/{shopId}/products`、`GET/PUT /api/shop/{shopId}/products/{productId}`、`PUT .../{productId}/status` |
+| 商品 | `GET/POST /api/shop/{shopId}/products`、`GET/PUT/DELETE /api/shop/{shopId}/products/{productId}`、`PUT .../{productId}/status`；删除是逻辑删除，有未完结订单时拒绝 |
 | 库存 | `GET /api/shop/{shopId}/stock/skus`、`POST /api/shop/{shopId}/stock/adjust`、`GET /api/shop/{shopId}/stock/logs` |
 | 订单 | `GET /api/shop/{shopId}/orders`、`GET .../ship-companies`、`GET .../{orderId}`、`POST .../{orderId}/ship`、`PUT .../{orderId}/ship` |
 | 售后 | `GET /api/shop/{shopId}/refunds`、`GET .../{refundId}`、`POST .../{refundId}/agree`、`/refuse`、`/received` |
-| 评价 | `GET /api/shop/{shopId}/reviews`（只读，无删除） |
+| 评价 | `GET /api/shop/{shopId}/reviews`、`DELETE /api/shop/{shopId}/reviews/{reviewId}`（仅店主） |
 | 优惠券 | `GET/POST /api/shop/{shopId}/coupons`、`PUT .../{couponId}/status`、`POST .../{couponId}/grant` |
 
-### 平台侧（需 `platform_admin = 1`）
+### 经营接口（需店主身份，顾客一律 403）
 
 | 模块 | 接口 |
 | --- | --- |
-| 店铺 | `GET /api/platform/shops/overview`、`GET/POST /api/platform/shops`、`PUT /api/platform/shops/{shopId}/status` |
-| 用户 | `GET /api/platform/users`（手机号打星）、`PUT /api/platform/users/{userId}/status`、`PUT /api/platform/users/{userId}/password` |
+| 顾客管理 | `GET /api/platform/users`（带订单数/累计消费/地址数）、`GET /api/platform/users/{userId}`（档案+地址+最近订单）、`PUT .../{userId}/status`、`PUT .../{userId}/password` |
+| 店铺 | `GET /api/platform/shops/overview`、`GET/POST /api/platform/shops`、`PUT /api/platform/shops/{shopId}/status`（单商家下界面已收起，接口保留） |
+
+> 路径仍在 `/api/platform/users` 下是为了不改既有契约，语义上就是「我的顾客」。
+> 列表里给完整手机号（要发货、要联系），并排除店主与店铺成员——
+> 店铺成员不是顾客，不该出现在这张表里。
 
 ---
 
@@ -332,7 +344,7 @@ PUT 回传   2110285652501422000
 | `owner.mall.bootstrap.enabled` | `true` | 首次启动补齐超管 / 店主 / 店铺 / 类目 |
 | `owner.mall.bootstrap.shop-name` | `日用铺` | |
 | `owner.mall.bootstrap.ship-address` | 示例地址 | 售后退货默认用它，**店主应改成真实地址** |
-| `owner.mall.bootstrap.owner-*` | `shopadmin / shop123 / 13800000001` | 店主账号 |
+| `owner.mall.bootstrap.owner-*` | `koko / koko@2026 / 17535306390` | 店主账号，默认与平台超管同一个 |
 | `owner.mall.sms.expose-code` | `false` | 未接短信通道；`true` 时验证码随响应返回，**仅本地联调** |
 | `owner.mall.order.timeout-job.enabled` | `false` | 已关闭：线下收款没有「付款倒计时」，订单不会被脚本自动取消；需要时可打开（每分钟取消超 30 分钟的待确认订单） |
 | `owner.mall.order.auto-finish-job.enabled` | `true` | 每天 02:10 把发货满 7 天的待收货订单改为已完成 |
@@ -411,7 +423,7 @@ PUT 回传   2110285652501422000
 
 | 区域 | 路由前缀 | 页面 |
 | --- | --- | --- |
-| 店面（顾客，公开可逛） | `/` | 首页、全部商品（类目筛选 / 排序 / 分页）、搜索、商品详情（含评价）、购物车、确认订单、我的订单（支付 / 取消 / 收货 / 申请售后 / 评价）、我的账号（资料 / 地址 / 优惠券 / 退款售后） |
+| 店面（顾客，公开可逛） | `/` | 首页、全部商品（类目筛选 / 排序 / 分页）、搜索、商品详情（含评价）、购物车、确认订单、我的订单（支付 / 取消 / 收货 / 申请售后 / 评价）、我的账号（头像 / 资料 / 地址 / 优惠券 / 退款售后）；注册后先落到 `/welcome` 补头像 |
 | 店铺后台（店主 / 店员） | `/admin` | 店铺看板、订单与发货、退款售后、商品管理、库存管理、优惠券、顾客评价、店铺与分类（资料 / 类目 / 店员） |
 | 平台后台（平台管理员） | `/admin/shops`、`/admin/users` | 店铺管理（总览 + 开通店铺 + 停用）、用户管理（查询 / 停用 / 重置密码） |
 

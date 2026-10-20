@@ -120,9 +120,6 @@ export default function MProduct() {
       <div style={{ background: '#fff' }}>
         <div className="m-detail__pricebar">
           <span className="m-detail__price">{money(sku ? sku.price : detail.minPrice)}</span>
-          {sku?.listPrice && num(sku.listPrice) > num(sku.price) && (
-            <span className="m-detail__listprice">{money(sku.listPrice)}</span>
-          )}
           <span style={{ marginLeft: 'auto' }} className="m-mute">
             {detail.totalAvailable > 0 ? `可售 ${detail.totalAvailable} 件` : '暂时缺货'}
           </span>
@@ -175,7 +172,7 @@ export default function MProduct() {
       <div className="m-card">
         <div className="m-sub" style={{ marginBottom: 8 }}>商品详情</div>
         {detail.detail ? (
-          <div style={{ whiteSpace: 'pre-wrap', color: '#525252', fontSize: 13, lineHeight: 1.8 }}>
+          <div style={{ whiteSpace: 'pre-wrap', color: '#4a443c', fontSize: 13, lineHeight: 1.8 }}>
             {detail.detail}
           </div>
         ) : (
@@ -198,7 +195,7 @@ export default function MProduct() {
                 <span className="m-mute" style={{ marginLeft: 'auto' }}>{dt(review.createTime)}</span>
               </div>
               {review.content && (
-                <div style={{ marginTop: 6, fontSize: 13, color: '#525252', lineHeight: 1.6 }}>{review.content}</div>
+                <div style={{ marginTop: 6, fontSize: 13, color: '#4a443c', lineHeight: 1.6 }}>{review.content}</div>
               )}
               {review.images?.length > 0 && (
                 <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>

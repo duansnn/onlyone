@@ -1,18 +1,19 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" width="96" height="96">
   <defs>
-    <linearGradient id="ownerGrad" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#1677ff" />
-      <stop offset="1" stop-color="#52c41a" />
+    <linearGradient id="f" x1="0" y1="0" x2="0.85" y2="1">
+      <stop offset="0" stop-color="#ffa564"/>
+      <stop offset="0.48" stop-color="#ff6a2b"/>
+      <stop offset="1" stop-color="#ea4210"/>
     </linearGradient>
+    <clipPath id="c"><rect width="96" height="96" rx="26"/></clipPath>
   </defs>
-  <rect width="64" height="64" rx="14" fill="url(#ownerGrad)" />
-  <text
-    x="32"
-    y="45"
-    font-family="Segoe UI, Helvetica, Arial, sans-serif"
-    font-size="38"
-    font-weight="700"
-    fill="#ffffff"
-    text-anchor="middle"
-  >O</text>
+  <g clip-path="url(#c)">
+    <rect width="96" height="96" rx="26" fill="url(#f)"/>
+    <ellipse cx="26" cy="8" rx="46" ry="34" fill="#ffffff" opacity="0.14"/>
+  </g>
+  <g fill="none" stroke="#ffffff" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M23 42 48 19l25 23" stroke-width="11.5"/>
+    <path d="M32 41v31a7 7 0 0 0 7 7h18a7 7 0 0 0 7-7V41" stroke-width="11.5"/>
+    <path d="M32 59h32" stroke-width="11.5"/>
+  </g>
 </svg>

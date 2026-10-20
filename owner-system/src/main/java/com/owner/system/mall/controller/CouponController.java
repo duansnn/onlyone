@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -50,6 +51,13 @@ public class CouponController {
             @Parameter(description = "UNUSED/LOCKED/USED/RETURNED/EXPIRED")
             @RequestParam(required = false) String status) {
         return R.ok(couponService.myCoupons(shopId, status));
+    }
+
+    @Operation(summary = "删除我的券", description = "清理用不上的券；占用中（LOCKED）与已使用（USED）的不允许删除")
+    @DeleteMapping("/mine/{couponUserId}")
+    public R<Void> deleteMine(@PathVariable Long couponUserId) {
+        couponService.deleteMine(couponUserId);
+        return R.ok();
     }
 
     @Operation(summary = "结算可用券", description = "门槛已满足、在有效期内、属于本店的券")

@@ -15,6 +15,7 @@ import {
   Tag,
 } from 'antd';
 import { platformApi } from '@/api/admin';
+import StatusTag from '@/components/StatusTag';
 import { toast } from '@/utils/feedback';
 import { money } from '@/utils/format';
 import type { PlatformOverview, PlatformShop } from '@/types/mall';
@@ -161,7 +162,7 @@ export default function PlatformShops() {
             title: '状态',
             width: 100,
             render: (_, r) => (
-              <Tag color={r.status === 0 ? 'green' : 'red'}>{r.statusLabel}</Tag>
+              <StatusTag tone={r.status === 0 ? 'done' : 'closed'}>{r.statusLabel}</StatusTag>
             ),
           },
           {

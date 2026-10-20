@@ -146,7 +146,7 @@ public class StorefrontService {
 
         return new ProductDetailVO(product.getId(), product.getShopId(), product.getName(),
                 product.getSellingPoint(), product.getDetail(), images,
-                assembler.toSkuVoList(skus),
+                assembler.toStoreSkuVoList(skus),
                 ProductAssembler.minPrice(skus), ProductAssembler.maxPrice(skus),
                 ProductAssembler.totalAvailable(skus), reviewCount,
                 average == null ? 0d : Math.round(average * 10d) / 10d);

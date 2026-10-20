@@ -2,12 +2,12 @@
 
 覆盖：
   1) 店主登录、建商品上架
-  2) 顾客注册、加购、下单、模拟支付
+  2) 顾客注册、加购、下单、店主确认收款（线下收款）
   3) 仅退款（未发货）：申请 -> 店主同意 -> 订单已退款 + 库存退回
   4) 退货退款（已发货）：申请 -> 店主同意给退货地址 -> 顾客填单号 -> 店主确认收货 -> 已退款
   5) 评价：已完成订单评价一次，重复评价被拒；店面能看到评价
   6) 优惠券：店主建券 -> 顾客领取 -> 下单抵扣 -> 支付核销
-  7) 权限：顾客访问店铺后台 403；店主访问平台接口 403
+  7) 权限：顾客访问店铺后台被拒；店铺成员访问平台级接口被拒
 """
 import os
 import json
@@ -84,10 +84,10 @@ def money(fen):
 print("=" * 70)
 print("1. 登录与建店数据")
 print("=" * 70)
-owner_login = ok("POST", "/api/auth/login", body={"account": "shopadmin", "password": "shop123"})
+owner_login = ok("POST", "/api/auth/login", body={"account": "koko", "password": "koko@2026"})
 owner_token = owner_login["token"]
 shop_id = owner_login["shops"][0]["shopId"]
-check("店主 shopadmin 登录成功，拿到店铺", bool(shop_id), owner_login)
+check("店主 koko 登录成功，拿到店铺", bool(shop_id), owner_login)
 
 categories = ok("GET", f"/api/shop/{shop_id}/categories", owner_token)
 flat = []
@@ -107,7 +107,7 @@ product = ok("POST", f"/api/shop/{shop_id}/products", owner_token, {
     "detail": "<p>3 层加厚，原生木浆。</p>",
     "status": "ON_SALE",
     "sort": 0,
-    "images": ["https://example.com/img/paper-1.jpg"],
+    "images": ["/demo/p1.jpg"],
     "skus": [{"specName": "默认", "price": 990, "listPrice": 1290, "stock": 100,
               "skuCode": SKU_CODE, "status": "0"}],
 })
@@ -119,7 +119,7 @@ check("商品上架成功，拿到 SKU", bool(sku_id), detail)
 # 上架要求校验：没有图片必须退回草稿
 noimg = ok("POST", f"/api/shop/{shop_id}/products", owner_token, {
     "categoryId": leaf, "name": "无图商品测试", "status": "ON_SALE",
-    "images": ["https://example.com/img/x.jpg"],
+    "images": ["/demo/p2.jpg"],
     "skus": [{"specName": "默认", "price": 100, "stock": 0, "status": "0"}],
 })
 noimg_detail = ok("GET", f"/api/shop/{shop_id}/products/{noimg}", owner_token)
@@ -163,10 +163,8 @@ stock = ok("GET", f"/api/shop/{shop_id}/stock/skus?productId={product_id}", owne
 row = stock["rows"][0]
 check("下单锁定库存（可售 98）", row["lockedStock"] == 2 and row["availableStock"] == 98, row)
 
-pay = ok("POST", f"/api/pay/{order1_id}?channel=WECHAT", cust_token)
-check("模拟支付通道已开启，可发起支付", pay["payable"] is True, pay)
-mocked = ok("POST", "/api/pay/mock/callback", cust_token, {"orderId": order1_id, "channel": "WECHAT"})
-check("模拟支付入账成功", mocked["accepted"] is True, mocked)
+ok("POST", f"/api/shop/{shop_id}/orders/{order1_id}/confirm-payment", owner_token)
+check("店主确认收款成功（线下收款，无在线支付）", True)
 
 d1 = ok("GET", f"/api/order/{order1_id}", cust_token)
 check("支付后订单变待发货", d1["summary"]["status"] == "PENDING_SHIPMENT", d1["summary"]["status"])
@@ -187,7 +185,7 @@ check("退款中的订单不能发货", "发货" in ship_msg, ship_msg)
 
 # 顾客想看后台 -> 403
 perm = biz_fail("GET", f"/api/shop/{shop_id}/orders", cust_token)
-check("顾客访问店铺后台被拒", "成员" in perm or "权限" in perm, perm)
+check("顾客访问店铺后台被拒", "店主" in perm or "权限" in perm or "成员" in perm, perm)
 
 pending = ok("GET", f"/api/shop/{shop_id}/refunds?status=PENDING", owner_token)
 check("后台售后台账能查到待处理", pending["total"] >= 1, pending["total"])
@@ -214,8 +212,7 @@ order2 = ok("POST", "/api/order/submit", cust_token,
             {"shopId": shop_id, "items": [{"skuId": sku_id, "quantity": 1, "price": 990}],
              "addressId": address_id})
 order2_id = order2["orderId"]
-ok("POST", f"/api/pay/{order2_id}?channel=ALIPAY", cust_token)
-ok("POST", "/api/pay/mock/callback", cust_token, {"orderId": order2_id, "channel": "ALIPAY"})
+ok("POST", f"/api/shop/{shop_id}/orders/{order2_id}/confirm-payment", owner_token)
 ok("POST", f"/api/shop/{shop_id}/orders/{order2_id}/ship", owner_token,
    {"shipCompany": "中通", "shipNo": "ZT998877665"})
 
@@ -240,8 +237,7 @@ order3 = ok("POST", "/api/order/submit", cust_token,
             {"shopId": shop_id, "items": [{"skuId": sku_id, "quantity": 1, "price": 990}],
              "addressId": address_id})
 order3_id = order3["orderId"]
-ok("POST", f"/api/pay/{order3_id}?channel=WECHAT", cust_token)
-ok("POST", "/api/pay/mock/callback", cust_token, {"orderId": order3_id, "channel": "WECHAT"})
+ok("POST", f"/api/shop/{shop_id}/orders/{order3_id}/confirm-payment", owner_token)
 refund3 = ok("POST", f"/api/refund/orders/{order3_id}", cust_token,
              {"type": "REFUND_ONLY", "reason": "拍错"})
 msg = biz_fail("POST", f"/api/shop/{shop_id}/refunds/{refund3}/refuse", owner_token, {})
@@ -276,8 +272,7 @@ order4 = ok("POST", "/api/order/submit", cust_token,
             {"shopId": shop_id, "items": [{"skuId": sku_id, "quantity": 1, "price": 990}],
              "addressId": address_id})
 order4_id = order4["orderId"]
-ok("POST", f"/api/pay/{order4_id}?channel=WECHAT", cust_token)
-ok("POST", "/api/pay/mock/callback", cust_token, {"orderId": order4_id, "channel": "WECHAT"})
+ok("POST", f"/api/shop/{shop_id}/orders/{order4_id}/confirm-payment", owner_token)
 msg = biz_fail("POST", "/api/review", cust_token,
                {"orderId": order4_id, "score": 5, "content": "还没收货就想评价一下试试"})
 check("未完成不能评价", "已完成" in msg, msg)
@@ -292,7 +287,7 @@ check("评价文字不足 10 字被拒", "10" in msg, msg)
 review_id = ok("POST", "/api/review", cust_token,
                {"orderId": order4_id, "score": 5,
                 "content": "纸巾很厚实，沾水也不容易破，回购了。",
-                "imageUrls": ["https://example.com/img/r1.jpg"]})
+                "imageUrls": ["/demo/p1.jpg"]})
 check("评价提交成功", bool(review_id), review_id)
 msg = biz_fail("POST", "/api/review", cust_token,
                {"orderId": order4_id, "score": 1, "content": "想改成差评，应该改不了才对"})
@@ -344,9 +339,7 @@ mine = ok("GET", f"/api/coupon/mine?shopId={shop_id}", cust_token)
 used = [c for c in mine if c["id"] == coupon_user_id]
 check("下单后券被占用（LOCKED）", used and used[0]["status"] == "LOCKED", used)
 
-ok("POST", f"/api/pay/{order5['orderId']}?channel=WECHAT", cust_token)
-ok("POST", "/api/pay/mock/callback", cust_token,
-   {"orderId": order5["orderId"], "channel": "WECHAT"})
+ok("POST", f"/api/shop/{shop_id}/orders/{order5['orderId']}/confirm-payment", owner_token)
 mine = ok("GET", f"/api/coupon/mine?shopId={shop_id}", cust_token)
 used = [c for c in mine if c["id"] == coupon_user_id]
 check("支付成功后券被核销（USED）", used and used[0]["status"] == "USED", used)
@@ -373,13 +366,13 @@ koko_token = koko["token"]
 check("平台超管 koko 登录成功", koko["user"]["platformAdmin"] is True, koko["user"])
 overview = ok("GET", "/api/platform/shops/overview", koko_token)
 check("平台工作台能看汇总数字", overview["shopCount"] >= 1, overview)
-msg = biz_fail("GET", f"/api/shop/{shop_id}/orders", koko_token)
-check("koko 不是店员，访问店铺后台被拒", "成员" in msg, msg)
+koko_orders = ok("GET", f"/api/shop/{shop_id}/orders", koko_token)
+check("koko 作为店主能看店铺订单", koko_orders["total"] >= 1, koko_orders.get("total"))
 msg = biz_fail("GET", "/api/platform/shops/overview", owner_token)
-check("店主访问平台接口被拒", "权限" in msg or "管理员" in msg, msg)
+check("店铺账号访问平台接口被拒", "店主" in msg or "权限" in msg or "管理员" in msg, msg)
 msg = biz_fail("POST", f"/api/shop/{shop_id}/coupons", cust_token, {
     "name": "顾客想建券", "thresholdAmount": 1000, "reduceAmount": 100, "total": 1, "status": "0"})
-check("顾客建券被拒", "成员" in msg, msg)
+check("顾客建券被拒", "店主" in msg or "权限" in msg or "成员" in msg, msg)
 
 # 店员不能建券
 ok("POST", f"/api/shop/{shop_id}/members", owner_token,

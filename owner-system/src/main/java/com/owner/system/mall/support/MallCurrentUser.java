@@ -55,13 +55,27 @@ public final class MallCurrentUser {
         return principal != null && principal.platformAdmin();
     }
 
-    /** 校验平台超级管理员身份，否则抛 403 */
-    public static void requirePlatformAdmin() {
+    /**
+     * 是否为店主（商家）。
+     * <p>单商家模式：店主就是 {@code platform_admin = 1} 的那个账号；
+     * 顾客的令牌里这个标记恒为 false，因此碰不到任何经营接口。</p>
+     */
+    public static boolean isMerchant() {
+        return isPlatformAdmin();
+    }
+
+    /** 校验店主身份，否则抛 403。经营类接口（商品、订单、顾客、店铺资料）都走这里。 */
+    public static void requireMerchant() {
         Principal principal = require();
         if (!principal.platformAdmin()) {
-            log.warn("[MallAuth] 非平台管理员尝试访问平台接口 userId={}", principal.userId());
-            throw new ServiceException(ResultCode.FORBIDDEN, "仅平台管理员可操作");
+            log.warn("[MallAuth] 顾客尝试访问经营接口 userId={}", principal.userId());
+            throw new ServiceException(ResultCode.FORBIDDEN, "仅店主可操作");
         }
+    }
+
+    /** 旧的平台管理员校验，等价于 {@link #requireMerchant()} */
+    public static void requirePlatformAdmin() {
+        requireMerchant();
     }
 
     /** 便于日志输出，不抛异常 */

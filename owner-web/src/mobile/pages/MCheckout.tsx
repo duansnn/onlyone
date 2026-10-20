@@ -182,14 +182,14 @@ export default function MCheckout() {
       }}>
         {current ? (
           <>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#111" strokeWidth="1.7" style={{ marginTop: 2 }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#17130f" strokeWidth="1.7" style={{ marginTop: 2 }}>
               <path d="M12 21s7-5.4 7-11a7 7 0 1 0-14 0c0 5.6 7 11 7 11z" />
               <circle cx="12" cy="10" r="2.5" />
             </svg>
             <div className="m-address__main">
               <div className="m-address__who">
                 <span>{current.receiver}</span>
-                <span style={{ fontWeight: 400, color: '#737373' }}>{current.mobile}</span>
+                <span style={{ fontWeight: 400, color: '#6f675e' }}>{current.mobile}</span>
                 {current.isDefault === 1 && <span className="m-tag">默认</span>}
               </div>
               <div className="m-address__text">{current.fullAddress}</div>
@@ -201,7 +201,7 @@ export default function MCheckout() {
             <div className="m-address__text">点这里添加一个收货地址</div>
           </div>
         )}
-        <span style={{ color: '#c4c4c4', fontSize: 18, alignSelf: 'center' }}>›</span>
+        <span style={{ color: '#b8afa4', fontSize: 18, alignSelf: 'center' }}>›</span>
       </button>
 
       <div className="m-card">
@@ -232,7 +232,7 @@ export default function MCheckout() {
           onClick={() => setCouponSheet(true)}
         >
           <span>优惠券</span>
-          <span style={{ marginLeft: 'auto', color: '#737373', fontSize: 13, marginRight: 4 }}>
+          <span style={{ marginLeft: 'auto', color: '#6f675e', fontSize: 13, marginRight: 4 }}>
             {preview?.couponName
               ? preview.couponName
               : (preview?.usableCoupons ?? []).length > 0
@@ -253,15 +253,15 @@ export default function MCheckout() {
       </div>
 
       <div className="m-card">
-        <div className="m-row m-row--between" style={{ fontSize: 13, color: '#525252' }}>
+        <div className="m-row m-row--between" style={{ fontSize: 13, color: '#4a443c' }}>
           <span>商品金额</span>
           <span>{money(preview?.goodsAmount ?? 0)}</span>
         </div>
-        <div className="m-row m-row--between" style={{ fontSize: 13, color: '#525252', marginTop: 8 }}>
+        <div className="m-row m-row--between" style={{ fontSize: 13, color: '#4a443c', marginTop: 8 }}>
           <span>运费</span>
           <span>{money(preview?.freightAmount ?? 0)}</span>
         </div>
-        <div className="m-row m-row--between" style={{ fontSize: 13, color: '#525252', marginTop: 8 }}>
+        <div className="m-row m-row--between" style={{ fontSize: 13, color: '#4a443c', marginTop: 8 }}>
           <span>优惠</span>
           <span>
             -{money(preview?.discountAmount ?? 0)}
@@ -306,7 +306,7 @@ export default function MCheckout() {
                 <div className="m-address__main">
                   <div className="m-address__who">
                     <span>{item.receiver}</span>
-                    <span style={{ fontWeight: 400, color: '#737373', fontSize: 13 }}>{item.mobile}</span>
+                    <span style={{ fontWeight: 400, color: '#6f675e', fontSize: 13 }}>{item.mobile}</span>
                     {item.isDefault === 1 && <span className="m-tag">默认</span>}
                   </div>
                   <div className="m-address__text">{item.fullAddress}</div>

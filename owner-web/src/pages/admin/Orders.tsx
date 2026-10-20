@@ -21,7 +21,8 @@ import { adminOrderApi } from '@/api/admin';
 import SafeImage from '@/components/SafeImage';
 import { useAuthStore } from '@/store/auth';
 import { toast } from '@/utils/feedback';
-import { dt, money, orderStatusColor } from '@/utils/format';
+import { dt, money, orderStatusTone } from '@/utils/format';
+import StatusTag from '@/components/StatusTag';
 import type { OrderDetail, OrderSummary } from '@/types/mall';
 
 const STATUSES = [
@@ -222,7 +223,7 @@ export default function AdminOrders() {
           {
             title: '状态',
             width: 100,
-            render: (_, r) => <Tag color={orderStatusColor(r.status)}>{r.statusLabel}</Tag>,
+            render: (_, r) => <StatusTag tone={orderStatusTone(r.status)}>{r.statusLabel}</StatusTag>,
           },
           {
             title: '物流',
@@ -283,7 +284,7 @@ export default function AdminOrders() {
         ]}
       />
 
-      <Drawer width={560} open={detailOpen} title="订单详情" onClose={() => setDetailOpen(false)}>
+      <Drawer size={560} open={detailOpen} title="订单详情" onClose={() => setDetailOpen(false)}>
         {!detail ? (
           <Card loading />
         ) : (
@@ -291,7 +292,7 @@ export default function AdminOrders() {
             <Descriptions column={1} size="small" bordered>
               <Descriptions.Item label="订单号">{detail.summary.orderNo}</Descriptions.Item>
               <Descriptions.Item label="状态">
-                <Tag color={orderStatusColor(detail.summary.status)}>{detail.summary.statusLabel}</Tag>
+                <StatusTag tone={orderStatusTone(detail.summary.status)}>{detail.summary.statusLabel}</StatusTag>
               </Descriptions.Item>
               <Descriptions.Item label="收货信息">
                 {detail.receiverName} {detail.receiverMobile}

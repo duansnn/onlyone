@@ -4,6 +4,7 @@ import com.owner.common.core.domain.PageQuery;
 import com.owner.common.core.domain.PageResult;
 import com.owner.common.core.domain.R;
 import com.owner.system.mall.domain.dto.ResetPasswordDTO;
+import com.owner.system.mall.domain.vo.CustomerDetailVO;
 import com.owner.system.mall.domain.vo.PlatformUserVO;
 import com.owner.system.mall.service.PlatformUserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -20,24 +21,30 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * 平台后台-用户：查询、停用、重置密码。只有 koko 能进。
- * <p>这里不能把人设成某店店主，设店主在店铺成员里做。</p>
+ * 后台-顾客管理：查询、详情、停用、重置密码。只有店主（koko）能进。
+ * <p>顾客是自己在店面注册的，这里不建账号、也不改顾客资料。</p>
  */
 @RestController
 @RequestMapping("/api/platform/users")
 @RequiredArgsConstructor
-@Tag(name = "平台后台-用户", description = "用户查询、停用启用、重置密码")
+@Tag(name = "后台-顾客管理", description = "顾客查询、详情、停用启用、重置密码")
 public class PlatformUserController {
 
     private final PlatformUserService platformUserService;
 
-    @Operation(summary = "用户分页", description = "按账号/昵称/手机号模糊查；列表里手机号中间四位打星")
+    @Operation(summary = "顾客分页", description = "按账号/昵称/手机号模糊查；带订单数、累计消费、最后下单时间")
     @GetMapping
     public R<PageResult<PlatformUserVO>> page(
             @Parameter(description = "账号 / 昵称 / 手机号") @RequestParam(required = false) String keyword,
             @Parameter(description = "0 正常，1 停用") @RequestParam(required = false) Integer status,
             PageQuery query) {
         return R.ok(platformUserService.page(keyword, status, query));
+    }
+
+    @Operation(summary = "顾客详情", description = "基础档案 + 消费统计 + 收货地址 + 最近 20 条订单")
+    @GetMapping("/{userId}")
+    public R<CustomerDetailVO> detail(@PathVariable Long userId) {
+        return R.ok(platformUserService.detail(userId));
     }
 
     @Operation(summary = "停用或启用账号", description = "0 正常，1 停用；停用后不能登录，也不能停用自己")

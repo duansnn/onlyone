@@ -259,9 +259,10 @@ owner:
       shop-name: 日用铺
       # 售后退货默认用这个地址，店主应在「店铺资料」里改成真实发货地址
       ship-address: ${OWNER_BOOTSTRAP_SHIP_ADDRESS:广东省深圳市南山区科技园 1 号 101 室（示例地址，请店主改成真实发货地址）}
-      owner-username: ${OWNER_BOOTSTRAP_OWNER_USERNAME:shopadmin}
-      owner-password: ${OWNER_BOOTSTRAP_OWNER_PASSWORD:shop123}
-      owner-mobile: ${OWNER_BOOTSTRAP_OWNER_MOBILE:13800000001}
+      # 默认店主就是平台超管 koko：一个人跑通「开店 → 上架 → 下单」全流程，不再另建 shopadmin
+      owner-username: ${OWNER_BOOTSTRAP_OWNER_USERNAME:koko}
+      owner-password: ${OWNER_BOOTSTRAP_OWNER_PASSWORD:koko@2026}
+      owner-mobile: ${OWNER_BOOTSTRAP_OWNER_MOBILE:17535306390}
     sms:
       # 未接短信通道，验证码只写日志。true 时把验证码随响应返回给前端，仅供本地联调，生产必须 false
       expose-code: false

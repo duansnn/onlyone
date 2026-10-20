@@ -51,57 +51,70 @@ export function countdown(expireTime?: string | null): string {
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
-/** 订单状态 → antd Tag 颜色 */
-export function orderStatusColor(status: string): string {
+/** 状态色语义：只决定圆点颜色，底色统一走浅暖色，避免与暖橙主题打架 */
+export type StatusTone = 'confirm' | 'ship' | 'receive' | 'done' | 'after' | 'danger' | 'closed';
+
+/** 订单状态 → 语义色 */
+export function orderStatusTone(status: string): StatusTone {
   switch (status) {
     case 'PENDING_PAYMENT':
-      return 'orange';
+      return 'confirm';
     case 'PENDING_SHIPMENT':
-      return 'blue';
+      return 'ship';
     case 'PENDING_RECEIPT':
-      return 'cyan';
+      return 'receive';
     case 'FINISHED':
-      return 'green';
+      return 'done';
     case 'REFUNDING':
-      return 'purple';
-    case 'REFUNDED':
-      return 'default';
+      return 'after';
     default:
-      return 'default';
+      return 'closed';
   }
 }
 
-export function refundStatusColor(status: string): string {
+/** 退款状态 → 语义色 */
+export function refundStatusTone(status: string): StatusTone {
   switch (status) {
     case 'PENDING':
-      return 'orange';
+      return 'confirm';
     case 'AGREED':
     case 'WAITING_RETURN':
     case 'RECEIVED':
-      return 'blue';
+      return 'ship';
     case 'SUCCESS':
-      return 'green';
+      return 'done';
     case 'REJECTED':
-      return 'red';
+      return 'danger';
     default:
-      return 'default';
+      return 'closed';
   }
 }
 
-export function productStatusColor(status: string): string {
+/** 商品状态 → 语义色 */
+export function productStatusTone(status: string): StatusTone {
   switch (status) {
     case 'ON_SALE':
-      return 'green';
+      return 'done';
     case 'DRAFT':
-      return 'default';
+      return 'closed';
     default:
-      return 'orange';
+      return 'confirm';
   }
 }
 
-/** 首图兜底：没有图片时给一个浅灰占位 */
+/** 首图兜底：没有图片（或图片地址失效）时给一张暖色底 + 相框图标的占位，不再是死灰块 */
 export const PLACEHOLDER =
   'data:image/svg+xml;charset=utf-8,' +
   encodeURIComponent(
-    '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><rect width="200" height="200" fill="#F5F5F5"/><text x="100" y="105" font-size="13" fill="#B4B2A9" text-anchor="middle" font-family="sans-serif">暂无图片</text></svg>',
+    '<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240">' +
+      '<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">' +
+      '<stop offset="0" stop-color="#FCF8F3"/><stop offset="1" stop-color="#F0E7DC"/></linearGradient></defs>' +
+      '<rect width="240" height="240" fill="url(#bg)"/>' +
+      '<g fill="none" stroke="#DFD1BF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">' +
+      '<rect x="86" y="82" width="68" height="56" rx="8"/>' +
+      '<circle cx="104" cy="100" r="6"/>' +
+      '<path d="M88 132l20-18 14 13 12-10 18 15"/>' +
+      '</g>' +
+      '<text x="120" y="172" font-size="14" fill="#BCAB98" text-anchor="middle" font-family="PingFang SC, Noto Sans SC, sans-serif">暂无图片</text>' +
+      '</svg>',
   );

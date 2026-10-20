@@ -136,7 +136,7 @@ export default function MAddress() {
           <div className="m-address__main">
             <div className="m-address__who">
               <span>{address.receiver}</span>
-              <span style={{ fontWeight: 400, color: '#737373', fontSize: 13 }}>{address.mobile}</span>
+              <span style={{ fontWeight: 400, color: '#6f675e', fontSize: 13 }}>{address.mobile}</span>
               {address.isDefault === 1 && <span className="m-tag">默认</span>}
             </div>
             <div className="m-address__text">{address.fullAddress}</div>
@@ -144,20 +144,20 @@ export default function MAddress() {
               {address.isDefault !== 1 && (
                 <button
                   onClick={() => void setDefault(address)}
-                  style={{ border: 0, background: 'none', color: '#2563eb', fontSize: 12, padding: 0 }}
+                  style={{ border: 0, background: 'none', color: '#ff5a1f', fontSize: 12, padding: 0 }}
                 >
                   设为默认
                 </button>
               )}
               <button
                 onClick={() => openEdit(address)}
-                style={{ border: 0, background: 'none', color: '#525252', fontSize: 12, padding: 0 }}
+                style={{ border: 0, background: 'none', color: '#4a443c', fontSize: 12, padding: 0 }}
               >
                 编辑
               </button>
               <button
                 onClick={() => void remove(address)}
-                style={{ border: 0, background: 'none', color: '#a3a3a3', fontSize: 12, padding: 0 }}
+                style={{ border: 0, background: 'none', color: '#a89f95', fontSize: 12, padding: 0 }}
               >
                 删除
               </button>

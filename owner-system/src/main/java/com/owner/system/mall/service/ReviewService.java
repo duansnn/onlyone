@@ -31,7 +31,7 @@ import java.util.List;
  * 评价服务（PRD §10）。
  *
  * <p>只有「已完成」的订单能评价，一笔订单评一次，按订单记录而不是按商品拆开；
- * 提交后不能改也不能删，店主也不能删差评，后台只读。</p>
+ * 顾客提交后不能改也不能删，店主只有删除权（处理广告、辱骂、泄露隐私），没有改评分的入口。</p>
  */
 @Slf4j
 @Service
@@ -110,10 +110,10 @@ public class ReviewService {
     }
 
     // ------------------------------------------------------------------
-    // 店铺后台（只读）
+    // 店铺后台
     // ------------------------------------------------------------------
 
-    /** 本店评价分页，店主与店员都能看，没有删除入口 */
+    /** 本店评价分页，店主与店员都能看 */
     public PageResult<ReviewVO> shopReviews(Long shopId, Integer score, PageQuery query) {
         shopGuard.requireMember(shopId);
         Page<Review> page = reviewMapper.selectPage(
@@ -125,6 +125,24 @@ public class ReviewService {
                         .orderByDesc(Review::getId));
         return PageResult.of(storefrontService.toReviewVos(page.getRecords()),
                 page.getTotal(), page.getCurrent(), page.getSize());
+    }
+
+    /**
+     * 删除评价（仅店主）。
+     *
+     * <p>评价是顾客的真实表达，正常情况下不该动；这里只给店主留一个删除入口，
+     * 用于处理广告刷屏、辱骂、泄露隐私这类内容。删掉之后该订单可以重新评价。</p>
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void delete(Long shopId, Long reviewId) {
+        shopGuard.requireOwner(shopId);
+        Review review = reviewMapper.selectById(reviewId);
+        if (review == null || !shopId.equals(review.getShopId())) {
+            throw new ServiceException(ResultCode.DATA_NOT_FOUND, "评价不存在：" + reviewId);
+        }
+        reviewMapper.deleteById(reviewId);
+        log.info("[Review] 店主删除评价 shopId={}, reviewId={}, orderId={}, score={}",
+                shopId, reviewId, review.getOrderId(), review.getScore());
     }
 
     // ------------------------------------------------------------------

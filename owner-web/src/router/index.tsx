@@ -10,6 +10,7 @@ import Cart from '@/pages/store/Cart';
 import Checkout from '@/pages/store/Checkout';
 import Orders from '@/pages/store/Orders';
 import Account from '@/pages/store/Account';
+import Welcome from '@/pages/store/Welcome';
 import AdminDashboard from '@/pages/admin/Dashboard';
 import AdminOrders from '@/pages/admin/Orders';
 import AdminRefunds from '@/pages/admin/Refunds';
@@ -18,8 +19,7 @@ import AdminStock from '@/pages/admin/Stock';
 import AdminCoupons from '@/pages/admin/Coupons';
 import AdminReviews from '@/pages/admin/Reviews';
 import AdminShop from '@/pages/admin/Shop';
-import PlatformShops from '@/pages/platform/Shops';
-import PlatformUsers from '@/pages/platform/Users';
+import AdminCustomers from '@/pages/admin/Customers';
 import NotFound from '@/pages/NotFound';
 import MobileLayout from '@/mobile/MobileLayout';
 import MHome from '@/mobile/pages/MHome';
@@ -30,9 +30,10 @@ import MCheckout from '@/mobile/pages/MCheckout';
 import MOrders from '@/mobile/pages/MOrders';
 import MOrderDetail from '@/mobile/pages/MOrderDetail';
 import MAccount from '@/mobile/pages/MAccount';
+import MProfile from '@/mobile/pages/MProfile';
 import MAddress from '@/mobile/pages/MAddress';
 import MLogin from '@/mobile/pages/MLogin';
-import { useAuthStore } from '@/store/auth';
+import { isMerchant, useAuthStore } from '@/store/auth';
 
 /** 需要登录 */
 function RequireAuth({ children }: { children: ReactElement }) {
@@ -44,24 +45,15 @@ function RequireAuth({ children }: { children: ReactElement }) {
   return children;
 }
 
-/** 需要有店铺身份（店主或店员），或平台管理员（只用平台侧菜单） */
+/** 需要店主身份：顾客访问后台一律送回店面首页 */
 function RequireShop({ children }: { children: ReactElement }) {
-  const { token, user, shops } = useAuthStore();
+  const { token, user } = useAuthStore();
   const location = useLocation();
   if (!token) {
     return <Navigate to="/login" replace state={{ from: location.pathname }} />;
   }
-  if (!shops.length && !user?.platformAdmin) {
+  if (!isMerchant(user)) {
     return <Navigate to="/" replace />;
-  }
-  return children;
-}
-
-/** 需要平台管理员 */
-function RequirePlatform({ children }: { children: ReactElement }) {
-  const user = useAuthStore((state) => state.user);
-  if (!user?.platformAdmin) {
-    return <Navigate to="/admin" replace />;
   }
   return children;
 }
@@ -84,6 +76,15 @@ function RequireMAuth({ children }: { children: ReactElement }) {
 
 const router = createBrowserRouter([
   { path: '/login', element: <Login /> },
+  {
+    // 注册后的资料完善页：独立布局，不套店面的页头页脚
+    path: '/welcome',
+    element: (
+      <RequireAuth>
+        <Welcome />
+      </RequireAuth>
+    ),
+  },
   { path: '/m/login', element: <MLogin /> },
   {
     path: '/m',
@@ -137,6 +138,14 @@ const router = createBrowserRouter([
         element: (
           <RequireMAuth>
             <MAccount />
+          </RequireMAuth>
+        ),
+      },
+      {
+        path: 'profile',
+        element: (
+          <RequireMAuth>
+            <MProfile />
           </RequireMAuth>
         ),
       },
@@ -201,22 +210,10 @@ const router = createBrowserRouter([
       { path: 'coupons', element: <AdminCoupons /> },
       { path: 'reviews', element: <AdminReviews /> },
       { path: 'shop', element: <AdminShop /> },
-      {
-        path: 'shops',
-        element: (
-          <RequirePlatform>
-            <PlatformShops />
-          </RequirePlatform>
-        ),
-      },
-      {
-        path: 'users',
-        element: (
-          <RequirePlatform>
-            <PlatformUsers />
-          </RequirePlatform>
-        ),
-      },
+      { path: 'customers', element: <AdminCustomers /> },
+      // 旧链接兼容：多商家时代的两个入口，现在统一收进「顾客管理」与「店铺与分类」
+      { path: 'users', element: <Navigate to="/admin/customers" replace /> },
+      { path: 'shops', element: <Navigate to="/admin/shop" replace /> },
       { path: '*', element: <NotFound /> },
     ],
   },

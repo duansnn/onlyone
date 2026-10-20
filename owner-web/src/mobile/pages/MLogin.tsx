@@ -41,15 +41,12 @@ export default function MLogin() {
     }
   };
 
-  const fill = (value: string) => {
-    setMode('login');
-    setAccount(value);
-    setPassword(value === 'koko' ? 'koko@2026' : 'shop123');
-  };
-
   return (
     <div className="m-root">
       <div className="m-login">
+        <div className="m-login__logo">
+          <img src="/brand/logo-mark.svg" alt="" />
+        </div>
         <div className="m-login__brand">日用铺</div>
         <div className="m-login__slogan">生活日用品，一件也送</div>
 
@@ -106,23 +103,6 @@ export default function MLogin() {
           <button onClick={() => setMode(mode === 'login' ? 'register' : 'login')}>
             {mode === 'login' ? '注册一个' : '去登录'}
           </button>
-        </div>
-
-        <div className="m-login__demo">
-          <div style={{ marginBottom: 6, color: '#111', fontWeight: 600 }}>演示账号（点一下自动填）</div>
-          <div>
-            平台管理员 / 店主：
-            <button onClick={() => fill('koko')} style={{ border: 0, background: 'none', color: '#2563eb', padding: '0 4px' }}>
-              koko / koko@2026
-            </button>
-          </div>
-          <div>
-            店主：
-            <button onClick={() => fill('shopadmin')} style={{ border: 0, background: 'none', color: '#2563eb', padding: '0 4px' }}>
-              shopadmin / shop123
-            </button>
-          </div>
-          <div style={{ marginTop: 6 }}>顾客可直接注册（账号用手机号，不是邮箱）</div>
         </div>
 
         <div className="m-login__switch">

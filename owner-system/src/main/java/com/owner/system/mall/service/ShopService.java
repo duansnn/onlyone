@@ -45,6 +45,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * 店铺服务：平台建店 / 停店 / 概览，店主改资料与管成员，店铺工作台。
@@ -291,7 +292,7 @@ public class ShopService {
         return member.getId();
     }
 
-    /** 店主变更角色 / 启用停用。一家店至少保留一名店主。 */
+    /** 店主变更角色 / 启用停用 / 改昵称手机号密码。一家店至少保留一名店主。 */
     @Transactional(rollbackFor = Exception.class)
     public void updateMember(Long shopId, Long memberId, MemberUpdateDTO dto) {
         shopGuard.requireOwner(shopId);
@@ -318,7 +319,63 @@ public class ShopService {
         if (shopMemberMapper.updateById(member) == 0) {
             throw new ServiceException(ResultCode.BUSINESS_ERROR, "数据已被他人修改，请刷新后重试");
         }
+        updateMemberAccount(member.getUserId(), dto);
         log.info("[Shop] 变更成员 memberId={}, role={}, status={}", memberId, newRole, newStatus);
+    }
+
+    /**
+     * 改店员的账号资料。昵称、手机号、口令都在 {@code sys_user} 上。
+     *
+     * <p>店员是用手机号登录的（建号时 username 就是手机号），所以改手机号时
+     * 登录账号一起跟着换，否则他改完就登不进来了；koko 这种用户名不是手机号的
+     * 账号只改手机号、不动用户名。</p>
+     */
+    private void updateMemberAccount(Long userId, MemberUpdateDTO dto) {
+        boolean touchNickname = StringUtils.isNotBlank(dto.nickname());
+        boolean touchMobile = StringUtils.isNotBlank(dto.mobile());
+        boolean touchPassword = StringUtils.isNotBlank(dto.password());
+        if (!touchNickname && !touchMobile && !touchPassword) {
+            return;
+        }
+
+        SysUser user = sysUserMapper.selectById(userId);
+        if (user == null) {
+            throw new ServiceException(ResultCode.DATA_NOT_FOUND, "成员账号不存在：" + userId);
+        }
+
+        if (touchNickname) {
+            user.setNickname(dto.nickname().trim());
+        }
+        if (touchMobile) {
+            String mobile = dto.mobile().trim();
+            if (!mobile.equals(user.getMobile())) {
+                long mobileUsed = sysUserMapper.selectCount(Wrappers.<SysUser>lambdaQuery()
+                        .eq(SysUser::getMobile, mobile)
+                        .ne(SysUser::getId, userId));
+                if (mobileUsed > 0) {
+                    throw new ServiceException(ResultCode.DATA_EXISTS, "手机号 " + mobile + " 已被其他账号使用");
+                }
+                if (Objects.equals(user.getUsername(), user.getMobile())) {
+                    long nameUsed = sysUserMapper.selectCount(Wrappers.<SysUser>lambdaQuery()
+                            .eq(SysUser::getUsername, mobile)
+                            .ne(SysUser::getId, userId));
+                    if (nameUsed > 0) {
+                        throw new ServiceException(ResultCode.DATA_EXISTS, "登录账号 " + mobile + " 已存在");
+                    }
+                    user.setUsername(mobile);
+                }
+                user.setMobile(mobile);
+            }
+        }
+        if (touchPassword) {
+            user.setPasswordHash(passwordService.encode(dto.password()));
+        }
+
+        if (sysUserMapper.updateById(user) == 0) {
+            throw new ServiceException(ResultCode.BUSINESS_ERROR, "账号资料已被他人修改，请刷新后重试");
+        }
+        log.info("[Shop] 更新成员账号 userId={}，改昵称={}，改手机号={}，重置密码={}",
+                userId, touchNickname, touchMobile, touchPassword);
     }
 
     /** 店铺工作台 */

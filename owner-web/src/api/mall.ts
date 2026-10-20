@@ -159,6 +159,8 @@ export const couponApi = {
   receive: (couponId: string) => post<CouponUser>(`/coupon/${couponId}/receive`),
   mine: (params?: { shopId?: string; status?: string }) =>
     get<CouponUser[]>('/coupon/mine', params),
+  /** 删除自己的一张券：占用中、已使用的不允许删 */
+  remove: (couponUserId: string) => del<void>(`/coupon/mine/${couponUserId}`),
   usable: (shopId: string, goodsAmount: number) =>
     get<CouponUser[]>('/coupon/usable', { shopId, goodsAmount }),
 };

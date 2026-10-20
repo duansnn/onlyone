@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useState } from 'react';
-import { Button, Card, Empty, Pagination, Radio, Skeleton, Space, Tag } from 'antd';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Pagination } from 'antd';
+import { AppstoreOutlined, HomeOutlined, RightOutlined } from '@ant-design/icons';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { storeApi } from '@/api/mall';
-import SafeImage from '@/components/SafeImage';
+import ProductTile from '@/components/ProductTile';
 import { useShopStore } from '@/store/shop';
-import { money } from '@/utils/format';
 import type { Category, ProductCard } from '@/types/mall';
 
 const SORTS = [
@@ -72,90 +72,158 @@ export default function ProductList() {
     setSearchParams(params);
   };
 
+  /** 当前选中的一级类目：categoryId 既可能是一级，也可能是某一级的子类 */
+  const activeParent = useMemo(() => {
+    if (!categoryId) return null;
+    return (
+      categories.find((category) => category.id === categoryId) ??
+      categories.find((category) => (category.children ?? []).some((child) => child.id === categoryId)) ??
+      null
+    );
+  }, [categories, categoryId]);
+
+  const activeChildId = activeParent
+    ? (activeParent.children ?? []).some((child) => child.id === categoryId)
+      ? categoryId
+      : ''
+    : '';
+
+  const title = keyword ? `搜索「${keyword}」` : (activeParent?.name ?? '全部商品');
+  const hasFilter = Boolean(keyword || categoryId || sort);
+
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+      <div className="sf-pagehead">
         <div>
-          <h2 className="mall-section-title" style={{ marginBottom: 4 }}>
-            {keyword ? `搜索“${keyword}”` : '全部商品'}
-          </h2>
-          <span className="mall-card__meta">共 {total} 件</span>
+          <div className="sf-pagehead__crumb">
+            <Link to="/">
+              <HomeOutlined /> 首页
+            </Link>
+            <RightOutlined style={{ fontSize: 9 }} />
+            <span>{title}</span>
+          </div>
+          <h1 className="sf-pagehead__title">
+            {title}
+            <span className="sf-pagehead__count">共 {total} 件</span>
+          </h1>
         </div>
-        <Radio.Group
-          value={sort}
-          options={SORTS}
-          optionType="button"
-          buttonStyle="solid"
-          onChange={(e) => patch({ sort: e.target.value })}
-        />
+        {hasFilter && (
+          <button
+            type="button"
+            className="sf-btn sf-btn--ghost"
+            onClick={() => setSearchParams(new URLSearchParams())}
+          >
+            清空筛选
+          </button>
+        )}
       </div>
 
-      <Space wrap style={{ marginBottom: 16 }}>
-        <Tag
-          color={!categoryId ? 'blue' : undefined}
-          style={{ cursor: 'pointer', padding: '4px 12px' }}
-          onClick={() => patch({ categoryId: '', keyword: '' })}
-        >
-          全部
-        </Tag>
-        {categories.map((c) => (
-          <Tag
-            key={c.id}
-            color={categoryId === c.id ? 'blue' : undefined}
-            style={{ cursor: 'pointer', padding: '4px 12px' }}
-            onClick={() => patch({ categoryId: c.id, keyword: '' })}
-          >
-            {c.name}
-          </Tag>
-        ))}
-      </Space>
+      <div className="sf-filter">
+        <div className="sf-filter__row">
+          <span className="sf-filter__label">分类</span>
+          <div className="sf-filter__chips">
+            <button
+              type="button"
+              className={`sf-chip${!categoryId && !keyword ? ' is-active' : ''}`}
+              onClick={() => patch({ categoryId: '', keyword: '' })}
+            >
+              全部
+            </button>
+            {categories.map((category) => (
+              <button
+                key={category.id}
+                type="button"
+                className={`sf-chip${activeParent?.id === category.id ? ' is-active' : ''}`}
+                onClick={() => patch({ categoryId: category.id, keyword: '' })}
+              >
+                {category.name}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {activeParent && (activeParent.children ?? []).length > 0 && (
+          <div className="sf-filter__row">
+            <span className="sf-filter__label">{activeParent.name}</span>
+            <div className="sf-filter__chips">
+              <button
+                type="button"
+                className={`sf-chip sf-chip--sub${!activeChildId ? ' is-active' : ''}`}
+                onClick={() => patch({ categoryId: activeParent.id })}
+              >
+                全部{activeParent.name}
+              </button>
+              {(activeParent.children ?? []).map((child) => (
+                <button
+                  key={child.id}
+                  type="button"
+                  className={`sf-chip sf-chip--sub${activeChildId === child.id ? ' is-active' : ''}`}
+                  onClick={() => patch({ categoryId: child.id })}
+                >
+                  {child.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="sf-toolbar">
+        <div className="sf-tabs">
+          {SORTS.map((item) => (
+            <button
+              key={item.value || 'default'}
+              type="button"
+              className={`sf-tabl${sort === item.value ? ' is-active' : ''}`}
+              onClick={() => patch({ sort: item.value })}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+        <span style={{ fontSize: 12, color: '#857e75' }}>按下单价格排序 · 单笔订单仅限本店商品</span>
+      </div>
 
       {loading ? (
-        <Skeleton active />
+        <div className="sf-grid">
+          {Array.from({ length: 8 }).map((_, index) => (
+            <div key={index} className="sf-skeleton" style={{ height: 320 }} />
+          ))}
+        </div>
       ) : rows.length === 0 ? (
-        <Card>
-          <Empty description={keyword ? '没有找到相关商品' : '该类目下暂无在售商品'} />
-        </Card>
+        <div className="sf-empty">
+          <AppstoreOutlined style={{ fontSize: 28, color: '#c9c0b6' }} />
+          {keyword ? '没有找到相关商品，换个关键词试试' : '该类目下暂无在售商品'}
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button type="button" className="sf-btn sf-btn--ghost" onClick={() => setSearchParams(new URLSearchParams())}>
+              看全部商品
+            </button>
+            <button type="button" className="sf-btn" onClick={() => navigate('/')}>
+              回首页
+            </button>
+          </div>
+        </div>
       ) : (
         <>
-          <div className="mall-grid">
-            {rows.map((p) => (
-              <div
-                key={p.id}
-                className="mall-card"
-                role="button"
-                tabIndex={0}
-                onClick={() => navigate(`/product/${p.id}`)}
-                onKeyDown={(e) => e.key === 'Enter' && navigate(`/product/${p.id}`)}
-              >
-                <SafeImage className="mall-card__img" src={p.coverImage} alt={p.name} />
-                <div className="mall-card__body">
-                  <span className="mall-card__name">{p.name}</span>
-                  <span className="mall-card__price">
-                    {money(p.minPrice)}
-                    {p.maxPrice > p.minPrice && <span style={{ fontSize: 13 }}> 起</span>}
-                  </span>
-                  <span className="mall-card__meta">可售 {p.totalAvailable} 件</span>
-                </div>
-              </div>
+          <div className="sf-grid">
+            {rows.map((product) => (
+              <ProductTile key={product.id} product={product} />
             ))}
           </div>
 
-          <div style={{ textAlign: 'center', marginTop: 24 }}>
-            <Pagination
-              current={pageNum}
-              total={total}
-              pageSize={12}
-              showSizeChanger={false}
-              onChange={(page) => patch({ pageNum: page })}
-            />
-          </div>
+          {total > 12 && (
+            <div className="sf-pagination">
+              <Pagination
+                current={pageNum}
+                total={total}
+                pageSize={12}
+                showSizeChanger={false}
+                onChange={(page) => patch({ pageNum: page })}
+              />
+            </div>
+          )}
         </>
       )}
-
-      <div style={{ marginTop: 24 }}>
-        <Button onClick={() => navigate('/')}>返回首页</Button>
-      </div>
     </div>
   );
 }

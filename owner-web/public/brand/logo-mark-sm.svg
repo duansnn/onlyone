@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" width="96" height="96" role="img" aria-label="日用铺">
+  <defs>
+    <linearGradient id="rypTile" x1="0" y1="0" x2="0.85" y2="1">
+      <stop offset="0" stop-color="#ffa564"/>
+      <stop offset="0.48" stop-color="#ff6a2b"/>
+      <stop offset="1" stop-color="#ea4210"/>
+    </linearGradient>
+    <clipPath id="rypClip"><rect width="96" height="96" rx="26"/></clipPath>
+  </defs>
+
+  <g clip-path="url(#rypClip)">
+    <rect width="96" height="96" rx="26" fill="url(#rypTile)"/>
+    <ellipse cx="26" cy="8" rx="46" ry="34" fill="#ffffff" opacity="0.14"/>
+  </g>
+
+  <!-- 16–32px 用：线索加粗、屋脊压低，保证缩小后仍是清楚的小房子 -->
+  <g fill="none" stroke="#ffffff" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M23 42 48 19l25 23" stroke-width="11.5"/>
+    <path d="M32 41v31a7 7 0 0 0 7 7h18a7 7 0 0 0 7-7V41" stroke-width="11.5"/>
+    <path d="M32 59h32" stroke-width="11.5"/>
+  </g>
+</svg>

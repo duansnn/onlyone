@@ -135,7 +135,7 @@ export default function MCart() {
                     <button
                       onClick={() => void remove(item)}
                       disabled={busySku === String(item.skuId)}
-                      style={{ border: 0, background: 'none', color: '#a3a3a3', fontSize: 12, padding: 0 }}
+                      style={{ border: 0, background: 'none', color: '#a89f95', fontSize: 12, padding: 0 }}
                     >
                       删除
                     </button>
@@ -170,7 +170,7 @@ export default function MCart() {
                   <span className="m-mute">不可结算</span>
                   <button
                     onClick={() => void remove(item)}
-                    style={{ border: 0, background: 'none', color: '#a3a3a3', fontSize: 12, padding: 0 }}
+                    style={{ border: 0, background: 'none', color: '#a89f95', fontSize: 12, padding: 0 }}
                   >
                     移除
                   </button>

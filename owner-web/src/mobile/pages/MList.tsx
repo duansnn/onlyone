@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { storeApi } from '@/api/mall';
 import { useShopStore } from '@/store/shop';
-import type { ProductCard } from '@/types/mall';
+import type { Category, ProductCard } from '@/types/mall';
 import MProductCard from '../components/MProductCard';
 
 const SORTS = [
@@ -13,11 +13,18 @@ const SORTS = [
 
 const PAGE_SIZE = 10;
 
+/**
+ * 固定空数组引用。
+ * selector 里写 `?? []` 每次都会造一个新数组，zustand 判定 state 变了 → 无限重渲染
+ * （表现为 React 报 Maximum update depth exceeded）。
+ */
+const NO_CATEGORIES: Category[] = [];
+
 export default function MList() {
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const shopId = useShopStore((state) => state.shopId);
-  const categories = useShopStore((state) => state.home?.categories ?? []);
+  const categories = useShopStore((state) => state.home?.categories ?? NO_CATEGORIES);
 
   const keyword = params.get('keyword') ?? '';
   const categoryId = params.get('categoryId') ?? '';
@@ -89,10 +96,10 @@ export default function MList() {
             padding: '0 12px',
             background: '#fff',
             borderRadius: 999,
-            border: '1px solid #ededed',
+            border: '1px solid #eee7de',
           }}
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a3a3a3" strokeWidth="2" strokeLinecap="round">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a89f95" strokeWidth="2" strokeLinecap="round">
             <circle cx="11" cy="11" r="7" />
             <path d="M20 20l-3.2-3.2" />
           </svg>
@@ -109,7 +116,7 @@ export default function MList() {
           />
           {draft && (
             <button
-              style={{ border: 0, background: 'none', color: '#a3a3a3', padding: 0, fontSize: 14 }}
+              style={{ border: 0, background: 'none', color: '#a89f95', padding: 0, fontSize: 14 }}
               onClick={() => {
                 setDraft('');
                 const next = new URLSearchParams(params);
@@ -160,17 +167,17 @@ export default function MList() {
             {option.label}
           </button>
         ))}
-        <span className="m-tab" style={{ color: '#a3a3a3', cursor: 'default' }}>
+        <span className="m-tab" style={{ color: '#a89f95', cursor: 'default' }}>
           {total} 件
         </span>
       </div>
 
       {keyword && (
-        <div style={{ padding: '10px 12px 0', color: '#737373', fontSize: 12 }}>
+        <div style={{ padding: '10px 12px 0', color: '#6f675e', fontSize: 12 }}>
           「{keyword}」的搜索结果，共 {total} 件
           <button
             onClick={() => navigate('/m/list')}
-            style={{ border: 0, background: 'none', color: '#2563eb', fontSize: 12, padding: '0 6px' }}
+            style={{ border: 0, background: 'none', color: '#ff5a1f', fontSize: 12, padding: '0 6px' }}
           >
             清除
           </button>

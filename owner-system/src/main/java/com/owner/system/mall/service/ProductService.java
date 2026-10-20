@@ -10,13 +10,18 @@ import com.owner.common.core.utils.StringUtils;
 import com.owner.system.mall.domain.dto.ProductSaveDTO;
 import com.owner.system.mall.domain.dto.SkuSaveDTO;
 import com.owner.system.mall.domain.entity.Category;
+import com.owner.system.mall.domain.entity.OrderInfo;
+import com.owner.system.mall.domain.entity.OrderItem;
 import com.owner.system.mall.domain.entity.Product;
 import com.owner.system.mall.domain.entity.ProductImage;
 import com.owner.system.mall.domain.entity.ProductSku;
+import com.owner.system.mall.domain.enums.OrderStatus;
 import com.owner.system.mall.domain.enums.ProductStatus;
 import com.owner.system.mall.domain.vo.ProductAdminDetailVO;
 import com.owner.system.mall.domain.vo.ProductAdminVO;
 import com.owner.system.mall.mapper.CategoryMapper;
+import com.owner.system.mall.mapper.OrderInfoMapper;
+import com.owner.system.mall.mapper.OrderItemMapper;
 import com.owner.system.mall.mapper.ProductImageMapper;
 import com.owner.system.mall.mapper.ProductMapper;
 import com.owner.system.mall.mapper.ProductSkuMapper;
@@ -55,6 +60,8 @@ public class ProductService {
     private final ProductSkuMapper skuMapper;
     private final ProductImageMapper imageMapper;
     private final CategoryMapper categoryMapper;
+    private final OrderItemMapper orderItemMapper;
+    private final OrderInfoMapper orderInfoMapper;
     private final StockService stockService;
     private final ShopGuard shopGuard;
     private final ProductAssembler assembler;
@@ -208,6 +215,48 @@ public class ProductService {
             throw new ServiceException(ResultCode.BUSINESS_ERROR, "数据已被他人修改，请刷新后重试");
         }
         log.info("[Product] 商品 {} 状态改为 {}", productId, target.getLabel());
+    }
+
+    /**
+     * 删除商品：逻辑删除（{@code del_flag = 1}），库里留痕，误删可由 DBA 恢复。
+     *
+     * <p>有未完结订单（待确认 / 待发货 / 待收货 / 退款中）的商品不允许删：
+     * 订单详情要靠 {@code order_item} 里的快照展示，但售后与库存回补还要认商品与规格，
+     * 先下架或等订单走完再删。</p>
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void delete(Long shopId, Long productId) {
+        shopGuard.requireMember(shopId);
+        Product product = requireProduct(shopId, productId);
+
+        List<Long> orderIds = orderItemMapper
+                .selectList(Wrappers.<OrderItem>lambdaQuery().eq(OrderItem::getProductId, productId))
+                .stream().map(OrderItem::getOrderId).distinct().toList();
+        if (!orderIds.isEmpty()) {
+            long ongoing = orderInfoMapper.selectCount(Wrappers.<OrderInfo>lambdaQuery()
+                    .in(OrderInfo::getId, orderIds)
+                    .in(OrderInfo::getStatus,
+                            OrderStatus.PENDING_PAYMENT.name(),
+                            OrderStatus.PENDING_SHIPMENT.name(),
+                            OrderStatus.PENDING_RECEIPT.name(),
+                            OrderStatus.REFUNDING.name()));
+            if (ongoing > 0) {
+                throw new ServiceException(ResultCode.BUSINESS_ERROR,
+                        "还有 " + ongoing + " 笔未完结的订单包含该商品，处理完再删（也可以先下架）");
+            }
+        }
+
+        List<ProductSku> skus = skuMapper.selectList(Wrappers.<ProductSku>lambdaQuery()
+                .eq(ProductSku::getProductId, productId));
+        for (ProductSku sku : skus) {
+            skuMapper.deleteById(sku.getId());
+        }
+        imageMapper.delete(Wrappers.<ProductImage>lambdaQuery()
+                .eq(ProductImage::getProductId, productId));
+        productMapper.deleteById(product.getId());
+
+        log.info("[Product] 删除商品 shopId={}, productId={}, name={}, 规格 {} 个",
+                shopId, productId, product.getName(), skus.size());
     }
 
     // ------------------------------------------------------------------

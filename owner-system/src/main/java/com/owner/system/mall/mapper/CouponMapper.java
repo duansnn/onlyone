@@ -27,4 +27,18 @@ public interface CouponMapper extends BaseMapper<Coupon> {
                AND received < total
             """)
     int increaseReceived(@Param("couponId") Long couponId);
+
+    /**
+     * 领取计数 -1：顾客删掉自己的券时把名额退回券池，别人还能领。
+     *
+     * @return 影响行数
+     */
+    @Update("""
+            UPDATE coupon
+               SET received = IF(received > 0, received - 1, 0),
+                   update_time = NOW()
+             WHERE id = #{couponId}
+               AND del_flag = 0
+            """)
+    int decreaseReceived(@Param("couponId") Long couponId);
 }

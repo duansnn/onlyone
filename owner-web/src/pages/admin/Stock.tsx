@@ -26,6 +26,7 @@ const REASONS = [
 
 export default function Stock() {
   const shopId = useAuthStore((state) => state.currentShopId) ?? '';
+  const [tab, setTab] = useState('skus');
   const [skus, setSkus] = useState<SkuStock[]>([]);
   const [skuTotal, setSkuTotal] = useState(0);
   const [skuPage, setSkuPage] = useState(1);
@@ -36,6 +37,8 @@ export default function Stock() {
   const [logTotal, setLogTotal] = useState(0);
   const [logPage, setLogPage] = useState(1);
   const [logSkuId, setLogSkuId] = useState<string | undefined>(undefined);
+  // 从列表点「流水」进来时，目标规格可能不在当前这一页，用这个记住它的名字
+  const [logLabel, setLogLabel] = useState<string | undefined>(undefined);
   const [logLoading, setLogLoading] = useState(false);
 
   const [target, setTarget] = useState<SkuStock | null>(null);
@@ -106,6 +109,8 @@ export default function Stock() {
       <h2 className="mall-section-title">库存管理</h2>
 
       <Tabs
+        activeKey={tab}
+        onChange={setTab}
         items={[
           {
             key: 'skus',
@@ -180,7 +185,10 @@ export default function Stock() {
                             size="small"
                             onClick={() => {
                               setLogSkuId(String(r.skuId));
+                              setLogLabel(`${r.productName} · ${r.specName}`);
                               setLogPage(1);
+                              // 原来只改了筛选条件，人还停在「规格库存」页签上，看着像没反应
+                              setTab('logs');
                             }}
                           >
                             流水
@@ -198,7 +206,7 @@ export default function Stock() {
             label: '库存流水',
             children: (
               <>
-                <Space style={{ marginBottom: 16 }}>
+                <Space style={{ marginBottom: 16 }} wrap>
                   <span className="mall-card__meta">筛选规格</span>
                   <Select
                     allowClear
@@ -207,13 +215,31 @@ export default function Stock() {
                     value={logSkuId}
                     onChange={(value) => {
                       setLogSkuId(value);
+                      if (!value) setLogLabel(undefined);
                       setLogPage(1);
                     }}
-                    options={skus.map((s) => ({
-                      value: String(s.skuId),
-                      label: `${s.productName} · ${s.specName}`,
-                    }))}
+                    options={[
+                      ...(logSkuId && logLabel && !skus.some((s) => String(s.skuId) === logSkuId)
+                        ? [{ value: logSkuId, label: logLabel }]
+                        : []),
+                      ...skus.map((s) => ({
+                        value: String(s.skuId),
+                        label: `${s.productName} · ${s.specName}`,
+                      })),
+                    ]}
                   />
+                  {logSkuId && (
+                    <Button
+                      size="small"
+                      onClick={() => {
+                        setLogSkuId(undefined);
+                        setLogLabel(undefined);
+                        setLogPage(1);
+                      }}
+                    >
+                      清除筛选
+                    </Button>
+                  )}
                 </Space>
                 <Table
                   rowKey="id"

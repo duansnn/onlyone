@@ -20,12 +20,14 @@ import com.owner.system.mall.domain.entity.ProductSku;
 import com.owner.system.mall.domain.entity.Refund;
 import com.owner.system.mall.domain.entity.Review;
 import com.owner.system.mall.domain.entity.Shop;
+import com.owner.system.mall.domain.entity.ShopMember;
 import com.owner.system.mall.domain.entity.UserAddress;
 import com.owner.system.mall.domain.enums.OperatorType;
 import com.owner.system.mall.domain.enums.OrderStatus;
 import com.owner.system.mall.domain.enums.PayChannel;
 import com.owner.system.mall.domain.enums.ProductStatus;
 import com.owner.system.mall.domain.enums.RefundStatus;
+import com.owner.system.mall.domain.enums.ShopRole;
 import com.owner.system.mall.domain.vo.CartItemVO;
 import com.owner.system.mall.domain.vo.CouponUserVO;
 import com.owner.system.mall.domain.vo.OrderDetailVO;
@@ -48,6 +50,7 @@ import com.owner.system.mall.support.RefundVos;
 import com.owner.system.mall.support.ShopGuard;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -92,6 +95,9 @@ public class OrderService {
     private static final int SKU_ENABLED = 0;
     private static final int MAX_QUANTITY = 99;
 
+    /** 店铺成员状态：停用 */
+    private static final int MEMBER_DISABLED = 1;
+
     private static final DateTimeFormatter ORDER_NO_FORMAT = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
     private static final SecureRandom RANDOM = new SecureRandom();
 
@@ -109,6 +115,15 @@ public class OrderService {
     private final CouponService couponService;
     private final StockService stockService;
     private final ProductAssembler productAssembler;
+
+    /**
+     * 是否允许店铺成员（店主/店员）在自己店铺下单。
+     *
+     * <p>默认 false：自购会刷出虚假销量、让「自己领券自己核销」变成套利，账目也对不平。
+     * 本地想用店主账号跑通购买流程时，加 {@code --owner.mall.order.allow-self-purchase=true} 或改 yml。</p>
+     */
+    @Value("${owner.mall.order.allow-self-purchase:false}")
+    private boolean allowSelfPurchase;
 
     // ==================================================================
     // 顾客侧：计价 / 提交 / 列表 / 详情 / 取消 / 确认收货
@@ -140,6 +155,11 @@ public class OrderService {
         if (build.priceChanged()) {
             message = "商品价格有更新，请确认后再提交";
         }
+        // 店主/店员自购：预览页先提示清楚，提交时再硬拦
+        String selfPurchase = selfPurchaseNotice(shop, userId);
+        if (selfPurchase != null) {
+            message = selfPurchase;
+        }
 
         return new OrderPreviewVO(shop.getId(), shop.getName(), build.itemVos(), build.invalid(),
                 goods, freight, discount, pay, discount > 0 ? dto.couponUserId() : null,
@@ -151,6 +171,11 @@ public class OrderService {
     public OrderSubmitVO submit(OrderSubmitDTO dto) {
         Long userId = MallCurrentUser.requireUserId();
         Shop shop = shopGuard.loadActiveShop(dto.shopId());
+
+        String selfPurchase = selfPurchaseNotice(shop, userId);
+        if (selfPurchase != null) {
+            throw new ServiceException(ResultCode.BUSINESS_ERROR, selfPurchase);
+        }
 
         BuildResult build = build(shop.getId(), dto.items(), true);
         if (!build.invalid().isEmpty()) {
@@ -609,6 +634,24 @@ public class OrderService {
         // 可用列表里找不到时，仍按规则报错（券过期、门槛不足等）
         couponService.lock(userId, shopId, couponUserId, goodsAmount, null);
         throw new ServiceException(ResultCode.BUSINESS_ERROR, "优惠券不可用，请重新选择");
+    }
+
+    /**
+     * 店主/店员不能在自己店铺下单。
+     *
+     * <p>返回 null 表示放行；返回文案时，预览页把它当提示显示，提交订单直接拒绝。</p>
+     */
+    private String selfPurchaseNotice(Shop shop, Long userId) {
+        if (allowSelfPurchase) {
+            return null;
+        }
+        ShopMember member = shopGuard.memberOf(shop.getId(), userId);
+        if (member == null || (member.getStatus() != null && member.getStatus() == MEMBER_DISABLED)) {
+            return null;
+        }
+        ShopRole role = ShopRole.of(member.getRole());
+        String who = role == null ? "店铺成员" : role.getLabel();
+        return "你是本店" + who + "，不能用自己账号在自己店铺下单，请换顾客账号购买";
     }
 
     private UserAddress requireOwnAddress(Long userId, Long addressId) {

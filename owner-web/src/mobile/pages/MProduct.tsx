@@ -13,6 +13,7 @@ export default function MProduct() {
   const navigate = useNavigate();
   const shopId = useShopStore((state) => state.shopId);
   const token = useAuthStore((state) => state.token);
+  const shops = useAuthStore((state) => state.shops);
 
   const [detail, setDetail] = useState<ProductDetail | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -47,6 +48,10 @@ export default function MProduct() {
   const sellable = Boolean(sku && sku.status === 0 && sku.availableStock > 0);
   const maxQty = Math.max(1, sku?.availableStock ?? 1);
 
+  /** 本店店主/店员不能给自己店铺下单（后端 submit 会做同样的拦截） */
+  const myShopRole = shops.find((s) => String(s.shopId) === String(shopId))?.role;
+  const selfPurchaseBlocked = Boolean(token && myShopRole);
+
   const requireLogin = () => {
     if (token) return false;
     toast.warning('请先登录');
@@ -56,6 +61,10 @@ export default function MProduct() {
 
   const addToCart = async () => {
     if (requireLogin()) return;
+    if (selfPurchaseBlocked) {
+      toast.warning(myShopRole === 'OWNER' ? '店主账号不能在自己店铺下单' : '店员账号不能在自己店铺下单');
+      return;
+    }
     if (!sku || !sellable) {
       toast.warning('请选择有货的规格');
       return;
@@ -73,6 +82,10 @@ export default function MProduct() {
 
   const buyNow = () => {
     if (requireLogin()) return;
+    if (selfPurchaseBlocked) {
+      toast.warning(myShopRole === 'OWNER' ? '店主账号不能在自己店铺下单' : '店员账号不能在自己店铺下单');
+      return;
+    }
     if (!detail || !sku || !sellable) {
       toast.warning('请选择有货的规格');
       return;
@@ -209,11 +222,25 @@ export default function MProduct() {
         )}
       </div>
 
+      {selfPurchaseBlocked && (
+        <div className="m-selfbuy-tip">
+          你是本店{myShopRole === 'OWNER' ? '店主' : '店员'}，不能用这个账号在自己店铺下单。
+        </div>
+      )}
+
       <div className="m-detailbar">
-        <button className="m-btn m-btn--block" disabled={busy || !sellable} onClick={() => void addToCart()}>
+        <button
+          className="m-btn m-btn--block"
+          disabled={busy || !sellable || selfPurchaseBlocked}
+          onClick={() => void addToCart()}
+        >
           加入购物车
         </button>
-        <button className="m-btn m-btn--primary m-btn--block" disabled={!sellable} onClick={buyNow}>
+        <button
+          className="m-btn m-btn--primary m-btn--block"
+          disabled={!sellable || selfPurchaseBlocked}
+          onClick={buyNow}
+        >
           立即购买
         </button>
       </div>

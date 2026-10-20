@@ -15,6 +15,7 @@ import {
   Tag,
 } from 'antd';
 import { adminRefundApi } from '@/api/admin';
+import { useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '@/store/auth';
 import { toast } from '@/utils/feedback';
 import { dt, money, refundStatusTone } from '@/utils/format';
@@ -23,7 +24,9 @@ import type { Refund } from '@/types/mall';
 
 const FILTERS = [
   { value: '', label: '全部' },
-  { value: 'PENDING', label: '待处理' },
+  // 与看板「待处理售后」同口径：待审批 + 已同意 + 待寄回 + 已收货
+  { value: 'OPEN', label: '待处理（未完结）' },
+  { value: 'PENDING', label: '仅待审批' },
   { value: 'AGREED', label: '已同意' },
   { value: 'WAITING_RETURN', label: '待顾客寄回' },
   { value: 'RECEIVED', label: '已收货待退款' },
@@ -33,7 +36,9 @@ const FILTERS = [
 
 export default function AdminRefunds() {
   const shopId = useAuthStore((state) => state.currentShopId) ?? '';
-  const [status, setStatus] = useState('');
+  const [searchParams, setSearchParams] = useSearchParams();
+  // 状态放 URL 里：从看板「待处理售后」点进来时能直接落到同一口径的列表
+  const status = searchParams.get('status') ?? '';
   const [rows, setRows] = useState<Refund[]>([]);
   const [total, setTotal] = useState(0);
   const [pageNum, setPageNum] = useState(1);
@@ -103,32 +108,47 @@ export default function AdminRefunds() {
 
   return (
     <div>
-      <h2 className="mall-section-title">退款 / 售后</h2>
+      <div className="admin-page-head">
+        <div>
+          <h2 className="mall-section-title">退款 / 售后</h2>
+          <p className="admin-page-head__desc">
+            全店所有顾客的售后单 · 当前筛选 <b>{total}</b> 条
+          </p>
+        </div>
+      </div>
 
       <Alert
         style={{ marginBottom: 16 }}
         type="info"
         showIcon
-        message="售后按整单处理"
+        title="售后按整单处理"
         description="未发货的订单只能「仅退款」，同意后按线下方式退回并恢复库存；已发货的订单走「退货退款」，同意后系统给出退货地址，顾客寄回并填写运单号，你确认收货后再发起退款。拒绝必须填写理由，订单会回到申请前的状态。"
       />
 
       <Card style={{ marginBottom: 16 }}>
-        <Select
-          value={status}
-          style={{ width: 180 }}
-          options={FILTERS}
-          onChange={(value) => {
-            setStatus(value);
-            setPageNum(1);
-          }}
-        />
+        <Space wrap>
+          <Select
+            value={status}
+            style={{ width: 200 }}
+            options={FILTERS}
+            onChange={(value) => {
+              const next = new URLSearchParams(searchParams);
+              if (value) next.set('status', value);
+              else next.delete('status');
+              setSearchParams(next, { replace: true });
+              setPageNum(1);
+            }}
+          />
+          <span className="mall-card__meta">
+            共 {total} 条{status === 'OPEN' ? '未完结售后' : ''}
+          </span>
+        </Space>
       </Card>
 
       {loading ? (
         <Skeleton active />
       ) : rows.length === 0 ? (
-        <Card>暂无售后申请</Card>
+        <Card>{status === 'OPEN' ? '没有未完结的售后，历史售后单可以切到「全部」查看' : '暂无售后申请'}</Card>
       ) : (
         rows.map((r) => (
           <Card
@@ -212,6 +232,7 @@ export default function AdminRefunds() {
             pageSize={10}
             total={total}
             showSizeChanger={false}
+            showTotal={(t) => `共 ${t} 条`}
             onChange={setPageNum}
           />
         </div>
@@ -229,7 +250,7 @@ export default function AdminRefunds() {
           style={{ marginBottom: 16 }}
           type="warning"
           showIcon
-          message="拒绝后订单会回到申请前的状态"
+          title="拒绝后订单会回到申请前的状态"
         />
         <Form form={form} layout="vertical">
           <Form.Item

@@ -757,6 +757,18 @@
   flex: 1;
 }
 
+/* 店主/店员在自己店铺：底部操作条是 fixed 的，提示块要留出它占的高度 */
+.m-selfbuy-tip {
+  margin: 0 12px 78px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #fff7ef;
+  border: 1px solid rgba(255, 90, 31, 0.18);
+  color: #8a5a3c;
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+
 /* ------------------------------ 购物车 ------------------------------ */
 
 .m-cart-item {

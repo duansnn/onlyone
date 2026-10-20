@@ -406,10 +406,10 @@ public class ShopService {
     // ------------------------------------------------------------------
 
     private long countPendingRefund(Long shopId) {
+        // 与售后列表「待处理」筛选共用 RefundStatus.openCodes()，避免两处口径漂移
         return refundMapper.selectCount(Wrappers.<Refund>lambdaQuery()
                 .eq(shopId != null, Refund::getShopId, shopId)
-                .in(Refund::getStatus, RefundStatus.PENDING.name(), RefundStatus.AGREED.name(),
-                        RefundStatus.WAITING_RETURN.name(), RefundStatus.RECEIVED.name()));
+                .in(Refund::getStatus, RefundStatus.openCodes()));
     }
 
     private long countActiveOwners(Long shopId) {

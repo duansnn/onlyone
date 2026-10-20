@@ -187,21 +187,22 @@ public class StockService {
         Map<Long, ProductSku> skuMap = new HashMap<>();
         List<Long> skuIds = page.getRecords().stream().map(StockLog::getSkuId).distinct().toList();
         if (!skuIds.isEmpty()) {
-            for (ProductSku sku : skuMapper.selectList(Wrappers.<ProductSku>lambdaQuery()
-                    .in(ProductSku::getId, skuIds))) {
+            // 商品删了，历史流水还得能读出当时是什么规格，所以这里不过滤 del_flag
+            for (ProductSku sku : skuMapper.selectByIdsIgnoreDeleted(skuIds)) {
                 skuMap.put(sku.getId(), sku);
             }
         }
         Map<Long, String> productNames = productNames(skuMap.values().stream()
-                .map(ProductSku::getProductId).distinct().toList());
+                .map(ProductSku::getProductId).distinct().toList(), true);
 
         List<StockLogVO> rows = new ArrayList<>(page.getRecords().size());
         for (StockLog item : page.getRecords()) {
             ProductSku sku = skuMap.get(item.getSkuId());
             StockReason reason = StockReason.of(item.getReason());
+            String productName = sku == null ? null : productNames.get(sku.getProductId());
             rows.add(new StockLogVO(item.getId(), item.getSkuId(),
-                    sku == null ? null : productNames.get(sku.getProductId()),
-                    sku == null ? null : sku.getSpecName(),
+                    productName == null ? "已删除的商品" : productName,
+                    sku == null ? "规格已删除" : sku.getSpecName(),
                     item.getChangeQty(), item.getAfterStock(), item.getAfterLocked(),
                     item.getReason(), reason == null ? item.getReason() : reason.getLabel(),
                     item.getOrderId(), item.getOperatorId(), item.getRemark(), item.getCreateTime()));
@@ -229,12 +230,21 @@ public class StockService {
     }
 
     private Map<Long, String> productNames(List<Long> productIds) {
+        return productNames(productIds, false);
+    }
+
+    /**
+     * @param includeDeleted 为 true 时连已删除商品一起查（库存流水等历史数据要能显示名字）
+     */
+    private Map<Long, String> productNames(List<Long> productIds, boolean includeDeleted) {
         if (productIds == null || productIds.isEmpty()) {
             return Collections.emptyMap();
         }
         Map<Long, String> result = new HashMap<>(productIds.size() * 2);
-        for (Product product : productMapper.selectList(Wrappers.<Product>lambdaQuery()
-                .in(Product::getId, productIds))) {
+        List<Product> products = includeDeleted
+                ? productMapper.selectByIdsIgnoreDeleted(productIds)
+                : productMapper.selectList(Wrappers.<Product>lambdaQuery().in(Product::getId, productIds));
+        for (Product product : products) {
             result.put(product.getId(), product.getName());
         }
         return result;

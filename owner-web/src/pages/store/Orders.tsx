@@ -24,6 +24,7 @@ import { useNavigate } from 'react-router-dom';
 import { orderApi, refundApi, reviewApi } from '@/api/mall';
 import SafeImage from '@/components/SafeImage';
 import StatusTag from '@/components/StatusTag';
+import { useAuthStore } from '@/store/auth';
 import { toast } from '@/utils/feedback';
 import {
   dt,
@@ -47,6 +48,8 @@ const FILTERS = [
 
 export default function Orders() {
   const navigate = useNavigate();
+  // 店主/店员登录后也是顾客，提醒他这一页只有自己的单，别和后台全店订单对不上
+  const shops = useAuthStore((state) => state.shops);
   const [status, setStatus] = useState('');
   const [rows, setRows] = useState<OrderSummary[]>([]);
   const [total, setTotal] = useState(0);
@@ -140,6 +143,21 @@ export default function Orders() {
   return (
     <div>
       <h2 className="mall-section-title">我的订单</h2>
+
+      {shops.length > 0 && (
+        <Alert
+          style={{ marginBottom: 16 }}
+          type="info"
+          showIcon
+          title="这里只有你自己下的订单"
+          description="你同时是店主/店员，这一页按顾客视角只列你本人的单；全店所有顾客的订单在店铺后台「订单与发货」。"
+          action={
+            <Button size="small" onClick={() => navigate('/admin/orders')}>
+              去后台看全店订单
+            </Button>
+          }
+        />
+      )}
 
       <Radio.Group
         value={status}
@@ -262,7 +280,7 @@ export default function Orders() {
 
       {/* 订单详情 */}
       <Drawer
-        width={560}
+        size={560}
         open={detailOpen}
         title="订单详情"
         onClose={() => setDetailOpen(false)}

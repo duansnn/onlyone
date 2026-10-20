@@ -16,6 +16,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { addressApi, orderApi } from '@/api/mall';
 import SafeImage from '@/components/SafeImage';
+import { useAuthStore } from '@/store/auth';
 import { toast } from '@/utils/feedback';
 import { dt, money, num } from '@/utils/format';
 import type { Address, OrderPreview, OrderSubmitResult } from '@/types/mall';
@@ -31,6 +32,10 @@ export default function Checkout() {
     const raw = sessionStorage.getItem('checkout:payload');
     return raw ? (JSON.parse(raw) as Payload) : null;
   });
+  const shops = useAuthStore((state) => state.shops);
+  /** 本店店主/店员不能给自己店铺下单（后端 submit 会做同样的拦截） */
+  const myShopRole = shops.find((s) => String(s.shopId) === String(payload?.shopId))?.role;
+  const selfPurchaseBlocked = Boolean(myShopRole);
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [addressId, setAddressId] = useState<string>('');
   const [addressPickerOpen, setAddressPickerOpen] = useState(false);
@@ -156,7 +161,7 @@ export default function Checkout() {
           <Alert
             type="info"
             showIcon
-            message="暂未接入在线支付"
+            title="暂未接入在线支付"
             description="系统当前不提供微信支付 / 支付宝收款，你无需在页面上付款。商家确认收款后会安排发货，进度可在「我的订单」里查看。"
           />
         </div>
@@ -169,6 +174,20 @@ export default function Checkout() {
   return (
     <div>
       <h2 className="mall-section-title">确认订单</h2>
+
+      {selfPurchaseBlocked && (
+        <Alert
+          style={{ marginBottom: 16 }}
+          type="warning"
+          showIcon
+          title="不能用本店账号给自己店铺下单"
+          description={
+            myShopRole === 'OWNER'
+              ? '你是这家店的店主。自己给自己下单会刷出虚假销量，也让「自己领券自己核销」变成套利，所以这里被拦住了。想体验购买流程，请注册一个顾客账号。'
+              : '你是这家店的店员。员工账号不允许在自己店铺下单，想体验购买流程请注册一个顾客账号。'
+          }
+        />
+      )}
 
       {addresses.length === 0 ? (
         <Card style={{ marginBottom: 16 }}>
@@ -219,7 +238,7 @@ export default function Checkout() {
           value={pickedId}
           onChange={(e) => setPickedId(e.target.value)}
         >
-          <Space direction="vertical" size={4} style={{ width: '100%' }}>
+          <Space orientation="vertical" size={4} style={{ width: '100%' }}>
             {addresses.map((a) => (
               <div
                 key={a.id}
@@ -271,7 +290,7 @@ export default function Checkout() {
             style={{ marginTop: 12 }}
             type="error"
             showIcon
-            message="以下商品已失效，请返回购物车移除后再提交"
+            title="以下商品已失效，请返回购物车移除后再提交"
             description={(preview?.invalidItems ?? [])
               .map((i) => `${i.productName}（${i.specName}）：${i.invalidReason}`)
               .join('；')}
@@ -284,7 +303,7 @@ export default function Checkout() {
           <span className="mall-card__meta">本单没有可用的优惠券</span>
         ) : (
           <Radio.Group value={couponUserId} onChange={(e) => void onSelectCoupon(e.target.value ?? null)}>
-            <Space direction="vertical">
+            <Space orientation="vertical">
               <Radio value={null}>不使用优惠券</Radio>
               {(preview?.usableCoupons ?? []).map((c) => (
                 <Radio key={c.id} value={String(c.id)}>
@@ -308,7 +327,7 @@ export default function Checkout() {
 
       <Card>
         <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-          <Space direction="vertical" align="end" size={4}>
+          <Space orientation="vertical" align="end" size={4}>
             <span className="mall-card__meta">商品金额 {money(preview?.goodsAmount ?? 0)}</span>
             <span className="mall-card__meta">运费 {money(preview?.freightAmount ?? 0)}</span>
             <span className="mall-card__meta">
@@ -318,12 +337,14 @@ export default function Checkout() {
             <span style={{ fontSize: 16 }}>
               应付 <span className="mall-price" style={{ fontSize: 24 }}>{money(preview?.payAmount ?? 0)}</span>
             </span>
-            {preview?.message && <span className="mall-card__meta">{preview.message}</span>}
+            {preview?.message && !selfPurchaseBlocked && (
+              <span className="mall-card__meta">{preview.message}</span>
+            )}
             <Button
               type="primary"
               size="large"
               loading={submitting}
-              disabled={!addressId || (preview?.invalidItems ?? []).length > 0}
+              disabled={!addressId || selfPurchaseBlocked || (preview?.invalidItems ?? []).length > 0}
               onClick={() => void submit()}
             >
               提交订单

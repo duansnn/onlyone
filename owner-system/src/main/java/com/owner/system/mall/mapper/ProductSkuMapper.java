@@ -4,13 +4,31 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.owner.system.mall.domain.entity.ProductSku;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
+
+import java.util.Collection;
+import java.util.List;
 
 /**
  * 商品规格 Mapper。
  */
 @Mapper
 public interface ProductSkuMapper extends BaseMapper<ProductSku> {
+
+    /**
+     * 按 ID 批量取规格，<b>不过滤逻辑删除</b>。
+     *
+     * <p>库存流水是历史数据，商品/规格删掉之后那条流水还得能显示当时是什么规格，
+     * 所以这里绕开 MyBatis-Plus 的 {@code del_flag = 0} 自动条件。</p>
+     */
+    @Select("""
+            <script>
+            SELECT * FROM product_sku WHERE id IN
+            <foreach collection="ids" item="id" open="(" separator="," close=")">#{id}</foreach>
+            </script>
+            """)
+    List<ProductSku> selectByIdsIgnoreDeleted(@Param("ids") Collection<Long> ids);
 
     /**
      * 条件更新库存与锁定量：只有当可售库存足够时才生效。

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Button,
   Card,
@@ -17,6 +17,7 @@ import {
   Timeline,
 } from 'antd';
 import { useSearchParams } from 'react-router-dom';
+import dayjs from 'dayjs';
 import { adminOrderApi } from '@/api/admin';
 import SafeImage from '@/components/SafeImage';
 import { useAuthStore } from '@/store/auth';
@@ -79,6 +80,19 @@ export default function AdminOrders() {
     void load();
   }, [load]);
 
+  // 看板「今日订单」点进来带 from/to，落到同一个日期区间；只应用一次，避免反复重查
+  const rangeFrom = searchParams.get('from') ?? '';
+  const rangeTo = searchParams.get('to') ?? '';
+  const appliedRange = useRef('');
+  useEffect(() => {
+    if (!rangeFrom || !rangeTo) return;
+    const key = `${rangeFrom}~${rangeTo}`;
+    if (appliedRange.current === key) return;
+    appliedRange.current = key;
+    filterForm.setFieldsValue({ range: [dayjs(rangeFrom), dayjs(rangeTo)] });
+    void load();
+  }, [rangeFrom, rangeTo, filterForm, load]);
+
   useEffect(() => {
     if (!shopId) return;
     void adminOrderApi
@@ -129,7 +143,14 @@ export default function AdminOrders() {
 
   return (
     <div>
-      <h2 className="mall-section-title">订单与发货</h2>
+      <div className="admin-page-head">
+        <div>
+          <h2 className="mall-section-title">订单与发货</h2>
+          <p className="admin-page-head__desc">
+            全店所有顾客的订单 · 当前筛选 <b>{total}</b> 单（你自己下的单在店面「我的订单」里）
+          </p>
+        </div>
+      </div>
 
       <Card style={{ marginBottom: 16 }}>
         <Space wrap align="end">
@@ -184,6 +205,7 @@ export default function AdminOrders() {
           pageSize: 10,
           total,
           showSizeChanger: false,
+          showTotal: (t) => `共 ${t} 单`,
           onChange: setPageNum,
         }}
         columns={[

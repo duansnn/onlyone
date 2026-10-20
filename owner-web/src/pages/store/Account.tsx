@@ -205,7 +205,7 @@ export default function Account() {
             label: '个人资料',
             children: (
               <div className="acc-pf">
-                <Space direction="vertical" size={16} style={{ width: '100%', minWidth: 0 }}>
+                <Space orientation="vertical" size={16} style={{ width: '100%', minWidth: 0 }}>
                 <Card>
                   <Form form={profileForm} layout="vertical">
                     <div className="acc-head">
@@ -414,7 +414,7 @@ export default function Account() {
             key: 'coupons',
             label: '我的优惠券',
             children: (
-              <Space direction="vertical" size={16} style={{ width: '100%' }}>
+              <Space orientation="vertical" size={16} style={{ width: '100%' }}>
                 <Card title="领券中心">
                   {center.length === 0 ? (
                     <Empty description="本店暂无可领优惠券" />

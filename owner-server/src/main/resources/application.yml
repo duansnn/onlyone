@@ -259,7 +259,8 @@ owner:
       shop-name: 日用铺
       # 售后退货默认用这个地址，店主应在「店铺资料」里改成真实发货地址
       ship-address: ${OWNER_BOOTSTRAP_SHIP_ADDRESS:广东省深圳市南山区科技园 1 号 101 室（示例地址，请店主改成真实发货地址）}
-      # 默认店主就是平台超管 koko：一个人跑通「开店 → 上架 → 下单」全流程，不再另建 shopadmin
+      # 默认店主就是平台超管 koko：一个人跑通「开店 → 上架 → 接单」全流程，不再另建 shopadmin
+      # （购买流程要用顾客账号，店主/店员不能在自己店铺下单，见 order.allow-self-purchase）
       owner-username: ${OWNER_BOOTSTRAP_OWNER_USERNAME:koko}
       owner-password: ${OWNER_BOOTSTRAP_OWNER_PASSWORD:koko@2026}
       owner-mobile: ${OWNER_BOOTSTRAP_OWNER_MOBILE:17535306390}
@@ -275,6 +276,9 @@ owner:
       # 单张图片上限（字节），默认 5 MB
       max-image-size: 5242880
     order:
+      # 店主/店员能否在自己店铺下单。默认 false：自购会刷出虚假销量，
+      # 也让「自己发券自己领自己核销」变成套利。想用 koko 跑通购买流程时改成 true
+      allow-self-purchase: ${OWNER_ALLOW_SELF_PURCHASE:false}
       # 未接入在线支付：订单停在「待确认」，由商家线下收款后点「确认收款」，
       # 因此默认不做过期自动取消（否则订单会在商家确认前被脚本取消）
       timeout-job:

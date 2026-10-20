@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Button, Card, Skeleton, Space, Statistic } from 'antd';
 import { useNavigate } from 'react-router-dom';
+import dayjs from 'dayjs';
 import { shopApi } from '@/api/admin';
 import { useAuthStore } from '@/store/auth';
 import { money } from '@/utils/format';
@@ -28,11 +29,40 @@ export default function Dashboard() {
   if (loading) return <Skeleton active />;
 
   const cards = [
-    { title: '今日订单', value: data?.todayOrderCount ?? 0, suffix: '单', to: '/admin/orders' },
-    { title: '今日收款', value: money(data?.todayPaidAmount ?? 0), to: '/admin/orders' },
-    { title: '待发货', value: data?.pendingShipmentCount ?? 0, suffix: '单', to: '/admin/orders?status=PENDING_SHIPMENT' },
-    { title: '待处理售后', value: data?.pendingRefundCount ?? 0, suffix: '单', to: '/admin/refunds' },
-    { title: '在售商品', value: data?.onSaleProductCount ?? 0, suffix: '个', to: '/admin/products' },
+    {
+      title: '今日订单',
+      value: data?.todayOrderCount ?? 0,
+      suffix: '单',
+      hint: '今天 0 点后创建的订单',
+      to: `/admin/orders?from=${dayjs().format('YYYY-MM-DD')}&to=${dayjs().format('YYYY-MM-DD')}`,
+    },
+    {
+      title: '今日收款',
+      value: money(data?.todayPaidAmount ?? 0),
+      hint: '今天确认收款的金额',
+      to: `/admin/orders?from=${dayjs().format('YYYY-MM-DD')}&to=${dayjs().format('YYYY-MM-DD')}`,
+    },
+    {
+      title: '待发货',
+      value: data?.pendingShipmentCount ?? 0,
+      suffix: '单',
+      hint: '已收款但还没填运单',
+      to: '/admin/orders?status=PENDING_SHIPMENT',
+    },
+    {
+      title: '待处理售后',
+      value: data?.pendingRefundCount ?? 0,
+      suffix: '单',
+      hint: '未完结的售后（待审批 / 已同意 / 待寄回 / 已收货）',
+      to: '/admin/refunds?status=OPEN',
+    },
+    {
+      title: '在售商品',
+      value: data?.onSaleProductCount ?? 0,
+      suffix: '个',
+      hint: '状态为在售的商品',
+      to: '/admin/products',
+    },
   ];
 
   return (
@@ -43,6 +73,7 @@ export default function Dashboard() {
         {cards.map((c) => (
           <Card key={c.title} hoverable onClick={() => navigate(c.to)}>
             <Statistic title={c.title} value={c.value} suffix={c.suffix} />
+            {c.hint && <div className="mall-card__meta" style={{ marginTop: 6 }}>{c.hint}</div>}
           </Card>
         ))}
       </div>

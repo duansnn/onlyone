@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
+  Alert,
   Button,
   Card,
   DatePicker,
@@ -15,13 +16,16 @@ import {
 } from 'antd';
 import dayjs from 'dayjs';
 import { adminCouponApi } from '@/api/admin';
-import { useAuthStore } from '@/store/auth';
+import { isShopOwner, useAuthStore } from '@/store/auth';
 import { toast } from '@/utils/feedback';
 import { dt, fenToYuanInput, money, yuanToFen } from '@/utils/format';
 import type { Coupon } from '@/types/mall';
 
 export default function Coupons() {
   const shopId = useAuthStore((state) => state.currentShopId) ?? '';
+  const shops = useAuthStore((state) => state.shops);
+  // 建券 / 改券 / 停启用 / 定向发放都只有店主能操作，店员只能看列表
+  const owner = isShopOwner(shops, shopId);
   const [status, setStatus] = useState('');
   const [rows, setRows] = useState<Coupon[]>([]);
   const [total, setTotal] = useState(0);
@@ -122,6 +126,16 @@ export default function Coupons() {
     <div>
       <h2 className="mall-section-title">优惠券</h2>
 
+      {!owner && (
+        <Alert
+          style={{ marginBottom: 16 }}
+          type="warning"
+          showIcon
+          title="你是以店员身份进来的"
+          description="优惠券的创建、编辑、停启用和定向发放只有店主可以操作，这里只能查看券的领取情况。"
+        />
+      )}
+
       <Card style={{ marginBottom: 16 }}>
         <Space wrap>
           <Select
@@ -137,7 +151,7 @@ export default function Coupons() {
               { value: '1', label: '停用' },
             ]}
           />
-          <Button type="primary" onClick={openCreate}>
+          <Button type="primary" disabled={!owner} onClick={openCreate}>
             新建优惠券
           </Button>
         </Space>
@@ -189,26 +203,29 @@ export default function Coupons() {
           {
             title: '操作',
             width: 230,
-            render: (_, r) => (
-              <Space>
-                <Button size="small" onClick={() => openEdit(r)}>
-                  编辑
-                </Button>
-                <Popconfirm
-                  title={r.status === 0 ? '停用后顾客将无法领取' : '启用后顾客可领取'}
-                  onConfirm={async () => {
-                    await adminCouponApi.setStatus(shopId, String(r.id), r.status === 0 ? 1 : 0);
-                    toast.success(r.status === 0 ? '已停用' : '已启用');
-                    await load();
-                  }}
-                >
-                  <Button size="small">{r.status === 0 ? '停用' : '启用'}</Button>
-                </Popconfirm>
-                <Button size="small" type="primary" onClick={() => setGrantTarget(r)}>
-                  定向发放
-                </Button>
-              </Space>
-            ),
+            render: (_, r) =>
+              owner ? (
+                <Space>
+                  <Button size="small" onClick={() => openEdit(r)}>
+                    编辑
+                  </Button>
+                  <Popconfirm
+                    title={r.status === 0 ? '停用后顾客将无法领取' : '启用后顾客可领取'}
+                    onConfirm={async () => {
+                      await adminCouponApi.setStatus(shopId, String(r.id), r.status === 0 ? 1 : 0);
+                      toast.success(r.status === 0 ? '已停用' : '已启用');
+                      await load();
+                    }}
+                  >
+                    <Button size="small">{r.status === 0 ? '停用' : '启用'}</Button>
+                  </Popconfirm>
+                  <Button size="small" type="primary" onClick={() => setGrantTarget(r)}>
+                    定向发放
+                  </Button>
+                </Space>
+              ) : (
+                <span className="mall-card__meta">—</span>
+              ),
           },
         ]}
       />

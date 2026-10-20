@@ -2,6 +2,9 @@ package com.owner.system.mall.domain.enums;
 
 import lombok.Getter;
 
+import java.util.Arrays;
+import java.util.List;
+
 /**
  * 售后状态。
  */
@@ -35,6 +38,19 @@ public enum RefundStatus {
     /** 结束状态 */
     public boolean isEnd() {
         return this == REJECTED || this == SUCCESS;
+    }
+
+    /**
+     * 未完结的售后状态码（PENDING / AGREED / WAITING_RETURN / RECEIVED）。
+     *
+     * <p>看板「待处理售后」的计数和售后列表「待处理」筛选都取这一份，
+     * 两处各写一遍就会出现「看板 0 单、列表 30 条」这种对不上的情况。</p>
+     */
+    public static List<String> openCodes() {
+        return Arrays.stream(values())
+                .filter(RefundStatus::isProcessing)
+                .map(Enum::name)
+                .toList();
     }
 
     public static RefundStatus of(String code) {

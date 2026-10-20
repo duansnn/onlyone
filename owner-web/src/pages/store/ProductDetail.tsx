@@ -22,6 +22,7 @@ export default function ProductDetail() {
   const navigate = useNavigate();
   const shopId = useShopStore((state) => state.shopId);
   const token = useAuthStore((state) => state.token);
+  const shops = useAuthStore((state) => state.shops);
   const [detail, setDetail] = useState<Detail | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
@@ -59,10 +60,22 @@ export default function ProductDetail() {
   );
   const sellable = Boolean(sku && sku.status === 0 && sku.availableStock > 0);
 
+  /** 当前账号在这家店里的身份（跨店浏览时不能拿 shopRoleOf 的兜底，会误判） */
+  const myShopRole = shops.find((s) => String(s.shopId) === String(shopId))?.role;
+  const selfPurchaseBlocked = Boolean(token && myShopRole);
+  const selfPurchaseTip =
+    myShopRole === 'OWNER'
+      ? '你是本店店主，不能用店主账号在自己店铺下单，想体验购买流程请注册一个顾客账号。'
+      : '你是本店店员，不能用员工账号在自己店铺下单，想体验购买流程请注册一个顾客账号。';
+
   const addToCart = async () => {
     if (!token) {
       toast.warning('请先登录');
       navigate('/login', { state: { from: `/product/${productId}` } });
+      return;
+    }
+    if (selfPurchaseBlocked) {
+      toast.warning(selfPurchaseTip);
       return;
     }
     if (!sku || !sellable) {
@@ -84,6 +97,10 @@ export default function ProductDetail() {
     if (!token) {
       toast.warning('请先登录');
       navigate('/login', { state: { from: `/product/${productId}` } });
+      return;
+    }
+    if (selfPurchaseBlocked) {
+      toast.warning(selfPurchaseTip);
       return;
     }
     if (!sku || !sellable) {
@@ -236,16 +253,28 @@ export default function ProductDetail() {
             </div>
           </div>
 
+          {selfPurchaseBlocked && (
+            <div className="sf-notice" style={{ marginTop: 22 }}>
+              <strong style={{ color: '#d9481a' }}>不能在本店下单</strong>
+              <span>{selfPurchaseTip}</span>
+            </div>
+          )}
+
           <div className="sf-buy">
             <button
               type="button"
               className="sf-btn sf-btn--ghost sf-btn--lg"
-              disabled={!sellable || busy}
+              disabled={!sellable || busy || selfPurchaseBlocked}
               onClick={() => void addToCart()}
             >
               <ShoppingCartOutlined /> 加入购物车
             </button>
-            <button type="button" className="sf-btn sf-btn--lg" disabled={!sellable} onClick={buyNow}>
+            <button
+              type="button"
+              className="sf-btn sf-btn--lg"
+              disabled={!sellable || selfPurchaseBlocked}
+              onClick={buyNow}
+            >
               <ThunderboltOutlined /> 立即购买
             </button>
           </div>
@@ -318,12 +347,17 @@ export default function ProductDetail() {
         <button
           type="button"
           className="sf-btn sf-btn--ghost"
-          disabled={!sellable || busy}
+          disabled={!sellable || busy || selfPurchaseBlocked}
           onClick={() => void addToCart()}
         >
           加入购物车
         </button>
-        <button type="button" className="sf-btn" disabled={!sellable} onClick={buyNow}>
+        <button
+          type="button"
+          className="sf-btn"
+          disabled={!sellable || selfPurchaseBlocked}
+          onClick={buyNow}
+        >
           立即购买
         </button>
       </div>

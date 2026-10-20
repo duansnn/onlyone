@@ -6,6 +6,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -14,6 +15,17 @@ import java.util.Map;
  */
 @Mapper
 public interface ProductMapper extends BaseMapper<Product> {
+
+    /**
+     * 按 ID 批量取商品，<b>不过滤逻辑删除</b>：库存流水等历史数据要能显示已下架/已删除商品的名字。
+     */
+    @Select("""
+            <script>
+            SELECT * FROM product WHERE id IN
+            <foreach collection="ids" item="id" open="(" separator="," close=")">#{id}</foreach>
+            </script>
+            """)
+    List<Product> selectByIdsIgnoreDeleted(@Param("ids") Collection<Long> ids);
 
     /** 按店铺统计在售商品数 */
     @Select("""

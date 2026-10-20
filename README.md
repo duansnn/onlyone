@@ -346,6 +346,7 @@ PUT 回传   2110285652501422000
 | `owner.mall.bootstrap.ship-address` | 示例地址 | 售后退货默认用它，**店主应改成真实地址** |
 | `owner.mall.bootstrap.owner-*` | `koko / koko@2026 / 17535306390` | 店主账号，默认与平台超管同一个 |
 | `owner.mall.sms.expose-code` | `false` | 未接短信通道；`true` 时验证码随响应返回，**仅本地联调** |
+| `owner.mall.order.allow-self-purchase` | `false` | 店主/店员**不能**在自己店铺下单（自购会刷虚假销量、自己发券自己核销）。本地想用 `koko` 跑通购买流程时设 `true` |
 | `owner.mall.order.timeout-job.enabled` | `false` | 已关闭：线下收款没有「付款倒计时」，订单不会被脚本自动取消；需要时可打开（每分钟取消超 30 分钟的待确认订单） |
 | `owner.mall.order.auto-finish-job.enabled` | `true` | 每天 02:10 把发货满 7 天的待收货订单改为已完成 |
 | `owner.mall.upload.dir` | `./uploads` | 图片落盘目录（相对启动目录或绝对路径），生产建议挂独立数据盘 |

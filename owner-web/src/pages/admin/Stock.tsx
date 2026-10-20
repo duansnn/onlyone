@@ -258,8 +258,8 @@ export default function Stock() {
                       title: '商品 / 规格',
                       render: (_, r) => (
                         <div>
-                          <div>{r.productName}</div>
-                          <div className="mall-card__meta">{r.specName}</div>
+                          <div>{r.productName || '已删除的商品'}</div>
+                          <div className="mall-card__meta">{r.specName || '规格已删除'}</div>
                         </div>
                       ),
                     },

@@ -3,12 +3,14 @@ import { Button, Card, Checkbox, Empty, InputNumber, Popconfirm, Skeleton, Space
 import { useNavigate } from 'react-router-dom';
 import { cartApi } from '@/api/mall';
 import SafeImage from '@/components/SafeImage';
+import { useAuthStore } from '@/store/auth';
 import { toast } from '@/utils/feedback';
 import { money, num } from '@/utils/format';
 import type { Cart as CartType, CartItem } from '@/types/mall';
 
 export default function Cart() {
   const navigate = useNavigate();
+  const shops = useAuthStore((state) => state.shops);
   const [cart, setCart] = useState<CartType | null>(null);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<string[]>([]);
@@ -75,6 +77,16 @@ export default function Cart() {
     const shopId = groups.find((g) => g.items.some((i) => selected.includes(String(i.skuId))))?.shopId;
     if (!shopId) {
       toast.warning('未找到商品所属店铺');
+      return;
+    }
+    // 自己店铺的货不能自己买：自购会刷虚假销量、自己领券自己核销
+    const myRole = shops.find((s) => String(s.shopId) === String(shopId))?.role;
+    if (myRole) {
+      toast.warning(
+        myRole === 'OWNER'
+          ? '你是本店店主，不能用店主账号在自己店铺下单'
+          : '你是本店店员，不能用员工账号在自己店铺下单',
+      );
       return;
     }
     // 一次只能结算一家店的商品（后端按店铺拆单）；price 必须回传，后端会校验价格是否被改过

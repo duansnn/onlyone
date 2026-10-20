@@ -260,7 +260,7 @@ export default function Shop() {
           style={{ marginBottom: 16 }}
           type="warning"
           showIcon
-          message="你是以店员身份进来的"
+          title="你是以店员身份进来的"
           description="店铺资料和店员管理只有店主可以修改，商品、库存、订单、售后不受影响。"
         />
       )}

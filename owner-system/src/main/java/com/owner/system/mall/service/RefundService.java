@@ -393,6 +393,9 @@ public class RefundService {
         }
         String normalized = status.trim().toUpperCase();
         switch (normalized) {
+            // 未完结（待处理 / 已同意 / 待寄回 / 已收货）：与看板「待处理售后」同一口径
+            case "OPEN", "PENDING_ALL", "PROCESSING" ->
+                    wrapper.in(Refund::getStatus, RefundStatus.openCodes());
             case "PENDING" -> wrapper.eq(Refund::getStatus, RefundStatus.PENDING.name());
             case "AGREED" -> wrapper.in(Refund::getStatus, RefundStatus.AGREED.name(),
                     RefundStatus.WAITING_RETURN.name(), RefundStatus.RECEIVED.name());

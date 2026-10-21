@@ -102,6 +102,30 @@ export function productStatusTone(status: string): StatusTone {
   }
 }
 
+/**
+ * 商品图文详情按纯文本处理。
+ *
+ * 后台编辑框是 TextArea（只接受纯文本），但早期冒烟脚本和接口曾把 `<p>…</p>` 这类
+ * HTML 写进 `product.detail`，直接渲染就会把标签原样露出来。这里把标签去掉、
+ * 块级结束标签换成换行、常见实体解码，历史脏数据也能正常显示。
+ */
+export function plainText(value?: string | null): string {
+  if (!value) return '';
+  let text = String(value);
+  if (/<[a-z!/][^>]*>/i.test(text)) {
+    text = text
+      .replace(/<\s*(?:br|\/p|\/div|\/li|\/h[1-6]|\/tr|\/section)\s*\/?>/gi, '\n')
+      .replace(/<[^>]*>/g, '')
+      .replace(/&nbsp;/gi, ' ')
+      .replace(/&lt;/gi, '<')
+      .replace(/&gt;/gi, '>')
+      .replace(/&quot;/gi, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&amp;/gi, '&');
+  }
+  return text.replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+}
+
 /** 首图兜底：没有图片（或图片地址失效）时给一张暖色底 + 相框图标的占位，不再是死灰块 */
 export const PLACEHOLDER =
   'data:image/svg+xml;charset=utf-8,' +

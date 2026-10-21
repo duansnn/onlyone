@@ -28,7 +28,14 @@ import ImageUploader from '@/components/ImageUploader';
 import SafeImage from '@/components/SafeImage';
 import { useAuthStore } from '@/store/auth';
 import { toast } from '@/utils/feedback';
-import { dt, fenToYuanInput, money, productStatusTone, yuanToFen } from '@/utils/format';
+import {
+  dt,
+  fenToYuanInput,
+  money,
+  plainText,
+  productStatusTone,
+  yuanToFen,
+} from '@/utils/format';
 import StatusTag from '@/components/StatusTag';
 import type { Category, ProductAdmin } from '@/types/mall';
 
@@ -164,7 +171,7 @@ export default function Products() {
         categoryId: String(detail.categoryId),
         name: detail.name,
         sellingPoint: detail.sellingPoint,
-        detail: detail.detail,
+        detail: plainText(detail.detail),
         status: detail.status,
         sort: detail.sort,
         images: detail.images ?? [],
@@ -192,7 +199,7 @@ export default function Products() {
         categoryId: values.categoryId,
         name: values.name,
         sellingPoint: values.sellingPoint,
-        detail: values.detail,
+        detail: plainText(values.detail),
         status: values.status,
         sort: values.sort ?? 0,
         images: (values.images ?? []).filter((i) => i && i.trim()),
@@ -482,7 +489,9 @@ export default function Products() {
                     <h3 className="pf-block__title">
                       <FileTextOutlined /> 图文详情
                     </h3>
-                    <p className="pf-block__desc">规格参数、使用场景、注意事项，写清楚能少很多售后咨询</p>
+                    <p className="pf-block__desc">
+                      纯文本，换行会被保留；不用写 HTML 标签，写成 <code>&lt;p&gt;文字&lt;/p&gt;</code> 会原样显示
+                    </p>
                   </div>
                 </header>
                 <Form.Item name="detail" style={{ marginBottom: 0 }}>

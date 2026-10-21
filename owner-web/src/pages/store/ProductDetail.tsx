@@ -14,7 +14,7 @@ import SafeImage from '@/components/SafeImage';
 import { useAuthStore } from '@/store/auth';
 import { useShopStore } from '@/store/shop';
 import { toast } from '@/utils/feedback';
-import { dt, num, yuan } from '@/utils/format';
+import { dt, num, plainText, yuan } from '@/utils/format';
 import type { ProductDetail as Detail, Review } from '@/types/mall';
 
 export default function ProductDetail() {
@@ -299,7 +299,7 @@ export default function ProductDetail() {
       <section className="sf-detail__section">
         <h2>商品详情</h2>
         {detail.detail ? (
-          <div className="sf-detail__text">{detail.detail}</div>
+          <div className="sf-detail__text">{plainText(detail.detail)}</div>
         ) : (
           <span style={{ color: '#857e75', fontSize: 14 }}>商家未填写图文详情</span>
         )}

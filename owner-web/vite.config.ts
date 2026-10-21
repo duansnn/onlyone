@@ -35,12 +35,16 @@ export default defineConfig(({ mode }) => {
       host: '0.0.0.0',
       port: devPort,
       strictPort: false,
+      // 手机通过内网穿透（cloudflared / localhost.run 等）访问时，Host 头是隧道域名，
+      // Vite 默认只放行 localhost 与 IP，会直接返回 "Blocked request"，这里放开
+      allowedHosts: true,
       proxy,
     },
     preview: {
       host: '0.0.0.0',
       port: 4173,
       strictPort: false,
+      allowedHosts: true,
       proxy,
     },
     build: {

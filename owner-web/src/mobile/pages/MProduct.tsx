@@ -4,7 +4,7 @@ import { cartApi, storeApi } from '@/api/mall';
 import SafeImage from '@/components/SafeImage';
 import { useAuthStore } from '@/store/auth';
 import { useShopStore } from '@/store/shop';
-import { dt, money, num } from '@/utils/format';
+import { dt, money, num, plainText } from '@/utils/format';
 import { toast } from '@/utils/feedback';
 import type { ProductDetail, Review } from '@/types/mall';
 
@@ -186,7 +186,7 @@ export default function MProduct() {
         <div className="m-sub" style={{ marginBottom: 8 }}>商品详情</div>
         {detail.detail ? (
           <div style={{ whiteSpace: 'pre-wrap', color: '#4a443c', fontSize: 13, lineHeight: 1.8 }}>
-            {detail.detail}
+            {plainText(detail.detail)}
           </div>
         ) : (
           <div className="m-mute">商家未填写图文详情</div>

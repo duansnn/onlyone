@@ -104,7 +104,7 @@ product = ok("POST", f"/api/shop/{shop_id}/products", owner_token, {
     "categoryId": leaf,
     "name": "抽取式厨房纸巾 3 层",
     "sellingPoint": "加厚不易破，一张顶两张",
-    "detail": "<p>3 层加厚，原生木浆。</p>",
+    "detail": "3 层加厚，原生木浆。\n吸油吸水快，湿水后不易破。",
     "status": "ON_SALE",
     "sort": 0,
     "images": ["/demo/p1.jpg"],

@@ -107,6 +107,8 @@ export const orderApi = {
     addressId: string;
     couponUserId?: string | null;
     buyerRemark?: string;
+    /** 幂等键，进结算页时生成，重复提交只会成一笔单 */
+    requestId?: string;
   }) => post<OrderSubmitResult>('/order/submit', data),
   mine: (params?: { status?: string } & PageQuery) =>
     get<Paged<OrderSummary>>('/order/mine', params),

@@ -32,6 +32,10 @@ public record OrderSubmitDTO(
 
         @Schema(description = "买家留言，200 字以内")
         @Size(max = 200, message = "买家留言不能超过 200 字")
-        String buyerRemark
+        String buyerRemark,
+
+        @Schema(description = "提交幂等键，前端进结算页时生成的一个 UUID；同一个值重复提交只会成一笔单")
+        @Size(max = 64, message = "幂等键过长")
+        String requestId
 ) {
 }

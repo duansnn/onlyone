@@ -37,6 +37,23 @@ const STATUSES = [
   { value: 'CANCELLED', label: '已取消' },
 ];
 
+/** 待确认超过这么多小时还没点「确认收款」的单要标出来 */
+const OVERDUE_HOURS = 24;
+
+/**
+ * 是否需要提醒。
+ *
+ * 系统不做在线支付，下单后停在「待确认」，而且超时取消任务默认是关的
+ * （`owner.mall.order.timeout-job.enabled=false`），所以订单不会自己消失，
+ * 全靠店主人工确认收款。挂太久的单必须显眼。
+ */
+function isOverdue(order: OrderSummary): boolean {
+  if (order.status !== 'PENDING_PAYMENT') return false;
+  const created = order.createTime ? dayjs(order.createTime) : null;
+  if (!created || !created.isValid()) return false;
+  return dayjs().diff(created, 'hour') >= OVERDUE_HOURS;
+}
+
 export default function AdminOrders() {
   const shopId = useAuthStore((state) => state.currentShopId) ?? '';
   const [searchParams, setSearchParams] = useSearchParams();
@@ -200,6 +217,7 @@ export default function AdminOrders() {
         scroll={{ x: 'max-content' }}
         loading={loading}
         dataSource={rows}
+        rowClassName={(r) => (isOverdue(r) ? 'mall-row-overdue' : '')}
         pagination={{
           current: pageNum,
           pageSize: 10,
@@ -215,6 +233,7 @@ export default function AdminOrders() {
               <div>
                 <div>{r.orderNo}</div>
                 <div className="mall-card__meta">{dt(r.createTime)}</div>
+                {isOverdue(r) && <span className="mall-overdue-badge">超 24 小时未确认</span>}
               </div>
             ),
           },

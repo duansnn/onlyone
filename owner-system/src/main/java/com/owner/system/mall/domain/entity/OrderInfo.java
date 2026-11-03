@@ -95,6 +95,13 @@ public class OrderInfo implements Serializable {
     /** 待付款超时时间（下单 +30 分钟） */
     private LocalDateTime expireTime;
 
+    /**
+     * 提交幂等键：前端进结算页生成的 requestId。
+     * <p>配合 {@code uk_order_idem(shop_id, idempotent_key)} 唯一索引，
+     * 保证同一个 requestId 在数据库层面也只能落一笔单。历史订单为空。</p>
+     */
+    private String idempotentKey;
+
     @TableLogic
     @TableField(fill = FieldFill.INSERT)
     private Integer delFlag;

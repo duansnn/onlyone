@@ -51,14 +51,17 @@ import com.owner.system.mall.support.ShopGuard;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -95,6 +98,12 @@ public class OrderService {
     private static final int SKU_ENABLED = 0;
     private static final int MAX_QUANTITY = 99;
 
+    /** 幂等键有效期，与待付款超时保持一致；过期后同一 requestId 才允许复用 */
+    private static final Duration IDEMPOTENT_TTL = Duration.ofMinutes(PAY_TIMEOUT_MINUTES);
+
+    /** 幂等键前缀，最终形如 owner:mall:order:idem:{userId}:{requestId} */
+    private static final String IDEMPOTENT_KEY_PREFIX = "owner:mall:order:idem:";
+
     /** 店铺成员状态：停用 */
     private static final int MEMBER_DISABLED = 1;
 
@@ -115,6 +124,7 @@ public class OrderService {
     private final CouponService couponService;
     private final StockService stockService;
     private final ProductAssembler productAssembler;
+    private final StringRedisTemplate redisTemplate;
 
     /**
      * 是否允许店铺成员（店主/店员）在自己店铺下单。
@@ -170,6 +180,74 @@ public class OrderService {
     @Transactional(rollbackFor = Exception.class)
     public OrderSubmitVO submit(OrderSubmitDTO dto) {
         Long userId = MallCurrentUser.requireUserId();
+        String requestId = StringUtils.trimToNull(dto.requestId());
+
+        // 幂等第一层：同一 requestId 只允许成功下单一次。
+        // 顾客连点、弱网重发、前端超时重试都会带同一个 requestId，命中就直接把上次那笔订单还给他。
+        if (requestId != null) {
+            OrderSubmitVO replay = replayIfDuplicated(userId, dto.shopId(), requestId);
+            if (replay != null) {
+                return replay;
+            }
+        }
+        try {
+            return doSubmit(dto, userId, requestId);
+        } catch (RuntimeException e) {
+            // 下单没成功就把幂等键放掉，否则顾客重试会被「正在处理」挡住半小时
+            releaseIdempotency(userId, requestId);
+            throw e;
+        }
+    }
+
+    /**
+     * 幂等占位。拿到锁说明是首次提交，返回 null 继续下单；
+     * 抢不到说明是重复提交，查出已落地的那笔订单原样返回。
+     *
+     * <p>首次请求可能还在事务里没提交，所以这里短轮询几次再放弃，避免「点第二下反而报错」。</p>
+     */
+    private OrderSubmitVO replayIfDuplicated(Long userId, Long shopId, String requestId) {
+        Boolean first = redisTemplate.opsForValue()
+                .setIfAbsent(idempotencyKey(userId, requestId), "1", IDEMPOTENT_TTL);
+        if (Boolean.TRUE.equals(first)) {
+            return null;
+        }
+        for (int i = 0; i < 5; i++) {
+            OrderInfo existed = orderInfoMapper.selectOne(Wrappers.<OrderInfo>lambdaQuery()
+                    .eq(OrderInfo::getUserId, userId)
+                    .eq(OrderInfo::getShopId, shopId)
+                    .eq(OrderInfo::getIdempotentKey, requestId));
+            if (existed != null) {
+                log.info("[Order] 命中幂等，返回已有订单 orderId={}, requestId={}", existed.getId(), requestId);
+                return new OrderSubmitVO(existed.getId(), existed.getOrderNo(),
+                        existed.getPayAmount(), existed.getExpireTime());
+            }
+            try {
+                Thread.sleep(100L);
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+        }
+        throw new ServiceException(ResultCode.BUSINESS_ERROR, "订单正在处理中，请不要重复提交");
+    }
+
+    private void releaseIdempotency(Long userId, String requestId) {
+        if (requestId == null) {
+            return;
+        }
+        try {
+            redisTemplate.delete(idempotencyKey(userId, requestId));
+        } catch (RuntimeException e) {
+            log.warn("[Order] 释放幂等键失败 requestId={}", requestId, e);
+        }
+    }
+
+    private String idempotencyKey(Long userId, String requestId) {
+        return IDEMPOTENT_KEY_PREFIX + userId + ":" + requestId;
+    }
+
+    /** 提交订单的实际流程，必须在 submit() 已开启的事务里执行 */
+    private OrderSubmitVO doSubmit(OrderSubmitDTO dto, Long userId, String requestId) {
         Shop shop = shopGuard.loadActiveShop(dto.shopId());
 
         String selfPurchase = selfPurchaseNotice(shop, userId);
@@ -199,6 +277,7 @@ public class OrderService {
         order.setOrderNo(generateOrderNo(shop.getId()));
         order.setShopId(shop.getId());
         order.setUserId(userId);
+        order.setIdempotentKey(requestId);
         order.setStatus(OrderStatus.PENDING_PAYMENT.name());
         order.setGoodsAmount(goods);
         order.setFreightAmount(freight);
@@ -244,8 +323,13 @@ public class OrderService {
             skuIds.add(line.sku().getId());
         }
 
-        // 锁定库存：任何一行不足都会整单回滚
-        for (Line line : build.lines()) {
+        // 锁定库存：任何一行不足都会整单回滚。
+        // 必须按 skuId 升序加锁：不同顾客购物车里商品顺序不同，若按提交顺序加锁，
+        // 两个订单拿到相反顺序的行锁就会互相等待（InnoDB 死锁 1213，其中一个被回滚）。
+        List<Line> lockOrder = build.lines().stream()
+                .sorted(Comparator.comparing(line -> line.sku().getId()))
+                .toList();
+        for (Line line : lockOrder) {
             stockService.lock(shop.getId(), line.sku().getId(), line.quantity(), order.getId(), userId);
         }
 

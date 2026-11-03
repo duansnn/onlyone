@@ -1,6 +1,11 @@
 const { get, post } = require('../../utils/request');
 const { money, datasetId, num } = require('../../utils/format');
 
+/** 提交幂等键：进结算页生成一次，后端按它去重，连点也只会成一笔单 */
+function newRequestId() {
+  return 'mp-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 12);
+}
+
 Page({
   data: {
     shopId: '',
@@ -31,6 +36,7 @@ Page({
       return;
     }
     this.payload = payload;
+    this.requestId = newRequestId();
     this.setData({ shopId: String(payload.shopId) });
   },
 
@@ -147,6 +153,7 @@ Page({
       addressId: this.data.addressId,
       couponUserId: this.data.couponUserId || null,
       buyerRemark: (this.data.remark || '').trim(),
+      requestId: this.requestId,
     })
       .then((result) => {
         wx.removeStorageSync('checkout');

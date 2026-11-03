@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { addressApi, orderApi } from '@/api/mall';
 import SafeImage from '@/components/SafeImage';
 import { dt, money, num } from '@/utils/format';
+import { newRequestId } from '@/utils/id';
 import { toast } from '@/utils/feedback';
 import type { Address, OrderPreview, OrderSubmitResult } from '@/types/mall';
 
@@ -29,6 +30,8 @@ export default function MCheckout() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [created, setCreated] = useState<OrderSubmitResult | null>(null);
+  /** 本次结算的幂等键：进页面生成一次，重复点「提交」也只会成一笔单 */
+  const [requestId] = useState(() => newRequestId());
 
   const loadPreview = useCallback(
     async (coupon?: string | null) => {
@@ -102,6 +105,7 @@ export default function MCheckout() {
         addressId,
         couponUserId,
         buyerRemark: remark || undefined,
+        requestId,
       });
       setCreated(result);
       sessionStorage.removeItem('checkout:payload');

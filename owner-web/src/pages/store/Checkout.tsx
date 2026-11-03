@@ -19,6 +19,7 @@ import SafeImage from '@/components/SafeImage';
 import { useAuthStore } from '@/store/auth';
 import { toast } from '@/utils/feedback';
 import { dt, money, num } from '@/utils/format';
+import { newRequestId } from '@/utils/id';
 import type { Address, OrderPreview, OrderSubmitResult } from '@/types/mall';
 
 interface Payload {
@@ -47,6 +48,8 @@ export default function Checkout() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [created, setCreated] = useState<OrderSubmitResult | null>(null);
+  /** 本次结算的幂等键：进页面生成一次，重复点「提交」也只会成一笔单 */
+  const [requestId] = useState(() => newRequestId());
 
   useEffect(() => {
     if (!payload) {
@@ -129,6 +132,7 @@ export default function Checkout() {
         addressId,
         couponUserId,
         buyerRemark: remark || undefined,
+        requestId,
       });
       setCreated(result);
       sessionStorage.removeItem('checkout:payload');

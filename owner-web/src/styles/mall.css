@@ -1738,3 +1738,24 @@
     align-items: stretch;
   }
 }
+
+/* 后台订单：待确认超过 24 小时的行。
+   系统不做在线支付也不自动取消，这类单只能靠店主人工确认收款，所以要显眼。 */
+.mall-row-overdue > td {
+  background: #fff8e8;
+}
+
+.mall-row-overdue:hover > td {
+  background: #fdeecd;
+}
+
+.mall-overdue-badge {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: #fde3c8;
+  color: #a8541a;
+  font-size: 12px;
+  line-height: 20px;
+}

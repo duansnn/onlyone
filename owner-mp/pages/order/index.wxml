@@ -1,0 +1,91 @@
+<view class="page pad-bar" wx:if="{{order}}">
+  <view class="card">
+    <view style="font-size: 36rpx; font-weight: 600;">{{summary.statusLabel}}</view>
+    <view class="mute">{{tip}}</view>
+  </view>
+  <view class="card">
+    <view style="font-weight: 600;">{{order.receiverName}} {{order.receiverMobile}}</view>
+    <view class="mute">{{order.receiverAddress}}</view>
+  </view>
+  <view class="card">
+    <view class="row-between" style="padding: 10rpx 0;" wx:for="{{items}}" wx:key="id">
+      <view class="grow">
+        <view class="clamp2">{{item.productName}}</view>
+        <view class="mute">{{item.specName}} × {{item.quantity}}</view>
+      </view>
+      <view>{{item.priceText}}</view>
+    </view>
+    <view class="line"><text>商品</text><text>{{goodsText}}</text></view>
+    <view class="line"><text>运费</text><text>{{freightText}}</text></view>
+    <view class="line"><text>优惠</text><text>-{{discountText}}</text></view>
+    <view class="line"><text>应付</text><text class="price">{{payText}}</text></view>
+  </view>
+  <view class="card">
+    <view class="line"><text>订单号</text><text bindtap="copyNo">{{summary.orderNo}}</text></view>
+    <view class="line"><text>下单时间</text><text>{{timeText}}</text></view>
+    <view class="line" wx:if="{{summary.shipNo}}"><text>物流</text><text bindtap="copyShip">{{summary.shipCompany}} {{summary.shipNo}}</text></view>
+    <view class="line" wx:if="{{order.buyerRemark}}"><text>留言</text><text>{{order.buyerRemark}}</text></view>
+  </view>
+  <view class="card" wx:if="{{refund}}">
+    <view class="section" style="padding: 0 0 8rpx;">售后</view>
+    <view class="line"><text>状态</text><text>{{refund.statusLabel}}</text></view>
+    <view class="line" wx:if="{{refund.reason}}"><text>原因</text><text>{{refund.reason}}</text></view>
+    <view class="line" wx:if="{{refund.refuseReason}}"><text>商家说明</text><text>{{refund.refuseReason}}</text></view>
+    <view class="mute" wx:if="{{refund.returnAddress}}">退回地址：{{refund.returnAddress}}</view>
+  </view>
+  <view class="card" wx:if="{{logs.length}}">
+    <view class="section" style="padding: 0 0 8rpx;">进度</view>
+    <view wx:for="{{logs}}" wx:key="id" style="padding: 8rpx 0;">
+      <view>{{item.toStatusLabel}}</view>
+      <view class="mute">{{item.remark}} {{item.timeText}}</view>
+    </view>
+  </view>
+
+  <view class="bar" wx:if="{{summary.canCancel || summary.canConfirmReceipt || summary.canApplyRefund || summary.canReview || canShipBack}}">
+    <view class="btn ghost" wx:if="{{summary.canCancel}}" bindtap="openCancel">取消</view>
+    <view class="btn ghost" wx:if="{{summary.canApplyRefund}}" bindtap="openRefund">申请售后</view>
+    <view class="btn ghost" wx:if="{{canShipBack}}" bindtap="openShip">填写退货运单</view>
+    <view class="btn ghost" wx:if="{{summary.canReview}}" bindtap="openReview">评价</view>
+    <view class="btn" wx:if="{{summary.canConfirmReceipt}}" bindtap="confirmReceipt">确认收货</view>
+  </view>
+</view>
+
+<view class="mask" wx:if="{{sheet}}" bindtap="closeSheet"></view>
+<view class="sheet" wx:if="{{sheet === 'cancel'}}">
+  <view class="sheet-title">取消订单</view>
+  <view class="picker-item {{reason === item ? 'on' : ''}}" wx:for="{{reasons}}" wx:key="*this" data-reason="{{item}}" bindtap="pickReason">{{item}}</view>
+  <view class="btn block" bindtap="submitCancel">确认取消</view>
+</view>
+<view class="sheet" wx:if="{{sheet === 'refund'}}">
+  <view class="sheet-title">{{refundTitle}}</view>
+  <view class="picker-item {{reason === item ? 'on' : ''}}" wx:for="{{reasons}}" wx:key="*this" data-reason="{{item}}" bindtap="pickReason">{{item}}</view>
+  <view class="field">
+    <view class="label">补充说明</view>
+    <textarea maxlength="300" value="{{description}}" bindinput="onDescription" placeholder="选填，300 字以内" />
+  </view>
+  <view class="btn block" bindtap="submitRefund">提交申请</view>
+</view>
+<view class="sheet" wx:if="{{sheet === 'review'}}">
+  <view class="sheet-title">评价</view>
+  <view class="star" style="font-size: 40rpx; padding: 8rpx 0 16rpx;">
+    <text data-score="1" bindtap="setScore">{{score >= 1 ? '★' : '☆'}}</text>
+    <text data-score="2" bindtap="setScore">{{score >= 2 ? '★' : '☆'}}</text>
+    <text data-score="3" bindtap="setScore">{{score >= 3 ? '★' : '☆'}}</text>
+    <text data-score="4" bindtap="setScore">{{score >= 4 ? '★' : '☆'}}</text>
+    <text data-score="5" bindtap="setScore">{{score >= 5 ? '★' : '☆'}}</text>
+  </view>
+  <view class="field">
+    <view class="label">内容（10 到 300 字）</view>
+    <textarea maxlength="300" value="{{content}}" bindinput="onContent" placeholder="说说这次购物" />
+  </view>
+  <view class="btn block" bindtap="submitReview">提交评价</view>
+</view>
+<view class="sheet" wx:if="{{sheet === 'ship'}}">
+  <view class="sheet-title">填写退货运单</view>
+  <view class="picker-item {{company === item ? 'on' : ''}}" wx:for="{{companies}}" wx:key="*this" data-company="{{item}}" bindtap="pickCompany">{{item}}</view>
+  <view class="field">
+    <view class="label">运单号</view>
+    <input value="{{shipNo}}" maxlength="40" bindinput="onShipNo" placeholder="6 到 40 位数字或字母" />
+  </view>
+  <view class="btn block" bindtap="submitShip">提交</view>
+</view>

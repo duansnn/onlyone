@@ -1,0 +1,57 @@
+{
+  "pages": [
+    "pages/home/index",
+    "pages/list/index",
+    "pages/cart/index",
+    "pages/account/index",
+    "pages/product/index",
+    "pages/login/index",
+    "pages/checkout/index",
+    "pages/address/index",
+    "pages/address-edit/index",
+    "pages/orders/index",
+    "pages/order/index",
+    "pages/coupons/index"
+  ],
+  "window": {
+    "navigationBarBackgroundColor": "#ffffff",
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "日用铺",
+    "backgroundColor": "#f6f5f3",
+    "backgroundTextStyle": "dark"
+  },
+  "tabBar": {
+    "color": "#8a8178",
+    "selectedColor": "#2563EB",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/home/index",
+        "text": "首页",
+        "iconPath": "assets/tab/home.png",
+        "selectedIconPath": "assets/tab/home-on.png"
+      },
+      {
+        "pagePath": "pages/list/index",
+        "text": "商品",
+        "iconPath": "assets/tab/list.png",
+        "selectedIconPath": "assets/tab/list-on.png"
+      },
+      {
+        "pagePath": "pages/cart/index",
+        "text": "购物车",
+        "iconPath": "assets/tab/cart.png",
+        "selectedIconPath": "assets/tab/cart-on.png"
+      },
+      {
+        "pagePath": "pages/account/index",
+        "text": "我的",
+        "iconPath": "assets/tab/user.png",
+        "selectedIconPath": "assets/tab/user-on.png"
+      }
+    ]
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}

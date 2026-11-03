@@ -1,0 +1,9 @@
+{
+  "desc": "Owner Mall 顾客小程序",
+  "rules": [
+    {
+      "action": "allow",
+      "page": "*"
+    }
+  ]
+}

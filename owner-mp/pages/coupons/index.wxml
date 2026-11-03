@@ -1,0 +1,31 @@
+<view class="tabs">
+  <view class="tab {{tab === 'center' ? 'on' : ''}}" data-tab="center" bindtap="setTab">领券</view>
+  <view class="tab {{tab === 'mine' ? 'on' : ''}}" data-tab="mine" bindtap="setTab">我的券</view>
+</view>
+<view class="page pad">
+  <block wx:if="{{tab === 'center'}}">
+    <view class="card" wx:for="{{center}}" wx:key="id">
+      <view class="row-between">
+        <view>
+          <view style="font-weight: 600;">{{item.name}}</view>
+          <view class="price">满 {{item.thresholdText}} 减 {{item.reduceText}}</view>
+          <view class="mute">{{item.timeText}}</view>
+        </view>
+        <view class="btn {{item.receivable ? '' : 'disabled'}}" style="height: 64rpx; line-height: 64rpx; padding: 0 24rpx;" data-sid="id-{{item.id}}" bindtap="receive">领取</view>
+      </view>
+    </view>
+    <view class="empty" wx:if="{{!center.length}}">暂无可领的券</view>
+  </block>
+  <block wx:else>
+    <view class="card" wx:for="{{mine}}" wx:key="id">
+      <view class="row-between">
+        <view>
+          <view style="font-weight: 600;">{{item.name}}</view>
+          <view>满 {{item.thresholdText}} 减 {{item.reduceText}}</view>
+        </view>
+        <text class="mute">{{item.statusLabel}}</text>
+      </view>
+    </view>
+    <view class="empty" wx:if="{{!mine.length}}">还没有优惠券</view>
+  </block>
+</view>

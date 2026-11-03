@@ -51,3 +51,6 @@ dist/
 
 ### WorkBuddy 本地工作数据（笔记 / 截图） ###
 .workbuddy/
+
+### 微信开发者工具本地配置 ###
+owner-mp/project.private.config.json

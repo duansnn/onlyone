@@ -1,0 +1,18 @@
+<view class="page pad">
+  <view class="card" wx:for="{{rows}}" wx:key="id">
+    <view class="row-between">
+      <text style="font-weight: 600;">{{item.receiver}} {{item.mobile}}</text>
+      <text class="mute" wx:if="{{item.isDefault === 1}}">默认</text>
+    </view>
+    <view>{{item.fullAddress}}</view>
+    <view class="row-between" style="margin-top: 16rpx;">
+      <text class="mute" data-sid="id-{{item.id}}" bindtap="makeDefault">设为默认</text>
+      <view>
+        <text data-sid="id-{{item.id}}" bindtap="edit" style="margin-right: 24rpx;">编辑</text>
+        <text data-sid="id-{{item.id}}" bindtap="remove">删除</text>
+      </view>
+    </view>
+  </view>
+  <view class="empty" wx:if="{{!rows.length}}">还没有收货地址</view>
+  <view class="btn block" bindtap="create">新增地址</view>
+</view>

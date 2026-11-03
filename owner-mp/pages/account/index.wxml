@@ -1,0 +1,21 @@
+<view class="page pad">
+  <view class="profile" wx:if="{{user}}">
+    <view class="avatar" wx:if="{{user.avatarUrl}}"><image src="{{avatar}}" mode="aspectFill" /></view>
+    <view class="avatar" wx:else>{{initial}}</view>
+    <view>
+      <view style="font-size: 34rpx; font-weight: 600;">{{user.nickname || user.username}}</view>
+      <view class="mute">{{user.mobile || ''}}{{roleLabel ? ' · ' + roleLabel : ''}}</view>
+    </view>
+  </view>
+  <view class="empty" wx:else>
+    登录后查看订单和地址
+    <view class="btn block" bindtap="goLogin">去登录</view>
+  </view>
+
+  <view class="menu-item" bindtap="goOrders"><text>我的订单</text><text class="mute">›</text></view>
+  <view class="menu-item" bindtap="goAddress"><text>收货地址</text><text class="mute">›</text></view>
+  <view class="menu-item" bindtap="goCoupons"><text>优惠券</text><text class="mute">›</text></view>
+  <view class="menu-item" wx:if="{{user}}" bindtap="logout"><text>退出登录</text><text class="mute">›</text></view>
+
+  <view class="card mute" wx:if="{{roleLabel}}">管店、确认收款和发货请用电脑打开网站后台。</view>
+</view>

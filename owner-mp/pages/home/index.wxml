@@ -1,0 +1,39 @@
+<view class="page pad" wx:if="{{home}}">
+  <view class="hero">
+    <view class="shop-name">{{home.shopName}}</view>
+    <view class="intro" wx:if="{{home.intro}}">{{home.intro}}</view>
+    <view class="intro" wx:if="{{home.businessHours}}">{{home.businessHours}}</view>
+  </view>
+  <view class="notice" wx:if="{{home.notice}}">{{home.notice}}</view>
+  <view class="cats" wx:if="{{home.categories.length}}">
+    <view
+      class="cat"
+      wx:for="{{home.categories}}"
+      wx:key="id"
+      data-sid="id-{{item.id}}"
+      data-name="{{item.name}}"
+      bindtap="openCategory"
+    >{{item.name}}</view>
+  </view>
+  <view class="section">在售商品</view>
+  <view class="grid" wx:if="{{home.products.length}}">
+    <view
+      class="tile"
+      wx:for="{{home.products}}"
+      wx:key="id"
+      data-sid="id-{{item.id}}"
+      bindtap="openProduct"
+    >
+      <view class="tile-inner">
+        <image class="cover" src="{{item.cover}}" mode="aspectFill" />
+        <view class="tile-body">
+          <view class="pname">{{item.name}}</view>
+          <view class="price">{{item.priceText}}</view>
+        </view>
+      </view>
+    </view>
+  </view>
+  <view class="empty" wx:else>店里还没有在售商品</view>
+  <view class="btn ghost block" wx:if="{{home.productTotal > home.products.length}}" bindtap="openAll">查看全部商品</view>
+</view>
+<view class="empty" wx:elif="{{!loading}}">店铺暂时没有内容</view>

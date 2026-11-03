@@ -1,0 +1,43 @@
+<view class="page pad-bar" wx:if="{{loggedIn}}">
+  <block wx:for="{{groups}}" wx:key="shopId" wx:for-item="group">
+    <view class="section">{{group.shopName}}</view>
+    <view class="list-item" wx:for="{{group.items}}" wx:key="skuId" wx:for-item="item">
+      <view class="check {{item.checked ? 'on' : ''}}" data-sid="id-{{item.skuId}}" bindtap="toggle"></view>
+      <image class="thumb" src="{{item.cover}}" mode="aspectFill" data-sid="id-{{item.productId}}" bindtap="openProduct" />
+      <view class="grow">
+        <view class="clamp2" data-sid="id-{{item.productId}}" bindtap="openProduct">{{item.productName}}</view>
+        <view class="mute">{{item.specName}}</view>
+        <view class="row-between">
+          <view class="price">{{item.priceText}}</view>
+          <view class="stepper">
+            <view class="n" data-sid="id-{{item.skuId}}" data-qty="{{item.quantity}}" bindtap="minus">-</view>
+            <view class="q">{{item.quantity}}</view>
+            <view class="n" data-sid="id-{{item.skuId}}" data-qty="{{item.quantity}}" data-max="{{item.availableStock}}" bindtap="plus">+</view>
+          </view>
+        </view>
+      </view>
+    </view>
+    <view class="list-item" wx:for="{{group.invalidItems}}" wx:key="skuId" wx:for-item="item">
+      <view class="grow">
+        <view class="clamp2">{{item.productName}}</view>
+        <view class="mute">{{item.invalidReason || '已失效'}}</view>
+      </view>
+      <view class="btn ghost" style="height: 64rpx; line-height: 64rpx; padding: 0 20rpx;" data-sid="id-{{item.skuId}}" bindtap="remove">删除</view>
+    </view>
+  </block>
+  <view class="empty" wx:if="{{!loading && !groups.length}}">
+    购物车是空的
+    <view class="btn block" bindtap="goList">去逛逛</view>
+  </view>
+  <view class="bar" wx:if="{{groups.length}}">
+    <view style="margin-right: auto;">
+      <view class="mute">已选 {{selectedCount}} 件</view>
+      <view class="price">{{totalText}}</view>
+    </view>
+    <view class="btn {{selectedCount ? '' : 'disabled'}}" bindtap="checkout">去结算</view>
+  </view>
+</view>
+<view class="empty" wx:else>
+  登录后查看购物车
+  <view class="btn block" bindtap="goLogin">去登录</view>
+</view>

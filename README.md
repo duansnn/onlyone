@@ -199,6 +199,27 @@ docker compose up -d --build
 会拉起 `owner-mysql`、`owner-redis`、`owner-server`（41452）与 `owner-web`（8080）。
 MySQL 首次启动自动执行 `sql/init.sql` 与 `sql/mall.sql`。
 
+### 4.7 演示账号
+
+启动引导（`MallDataInitializer`）只会创建店主 `koko`（同时是平台超管）；
+店员和顾客是本地演示库里的数据，**全新库需要自己加**（后台「店铺与分类 → 店员管理」加店员，
+店面 `/login` 注册即是顾客）。
+
+三个演示账号的口令如下（**登录框填「登录账号」那一列，昵称只是显示名**）：
+
+| 角色 | 登录账号 | 密码 | 昵称 | 登录后落到 |
+| --- | --- | --- | --- | --- |
+| 店主（兼平台超管） | `koko` | `koko@2026` | 日用铺管理员 | `/admin` 店铺后台 |
+| 店员 | `18203536390` | `sike@2026` | 思柯 | `/admin`（改店资料、店员管理、建券会被拒） |
+| 顾客 | `13259841768` | `amara@2026` | Amara | `/` 店面首页 |
+
+- 三个账号 PC 与手机端（`/m`）通用；手机端同一套令牌。
+- 店主/店员**不能在自己店铺下单**（会被 600 拒绝）；要跑完整下单流程请用顾客账号，
+  或临时加 `--owner.mall.order.allow-self-purchase=true`。
+- 连续输错 5 次密码会锁 15 分钟（计数在 Redis `owner:mall:login:fail:<account>`，
+  清掉该 key 即可解锁）。
+- 想恢复成「只留这三个账号」，执行 `scripts/reset-demo-accounts.sql`（幂等）。
+
 ---
 
 ## 5. 访问入口与示例请求

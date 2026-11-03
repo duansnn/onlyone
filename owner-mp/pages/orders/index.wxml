@@ -1,0 +1,27 @@
+<scroll-view class="tabs" scroll-x>
+  <view
+    class="tab {{status === item.value ? 'on' : ''}}"
+    wx:for="{{filters}}"
+    wx:key="value"
+    data-status="{{item.value}}"
+    bindtap="setStatus"
+  >{{item.label}}</view>
+</scroll-view>
+<view class="page pad">
+  <view class="card" wx:for="{{rows}}" wx:key="id" data-sid="id-{{item.id}}" bindtap="open">
+    <view class="row-between">
+      <text>{{item.shopName}}</text>
+      <text>{{item.statusLabel}}</text>
+    </view>
+    <view class="row-between" style="margin-top: 12rpx;">
+      <view class="grow">
+        <view class="clamp2">{{item.productSummary || '商品'}}</view>
+        <view class="mute">共 {{item.itemCount}} 件 · {{item.timeText}}</view>
+      </view>
+      <view class="price">{{item.payText}}</view>
+    </view>
+    <view class="mute" wx:if="{{item.shipNo}}">{{item.shipCompany}} {{item.shipNo}}</view>
+  </view>
+  <view class="empty" wx:if="{{!loading && !rows.length}}">这里还没有订单</view>
+  <view class="btn ghost block" wx:if="{{hasMore}}" bindtap="more">加载更多</view>
+</view>

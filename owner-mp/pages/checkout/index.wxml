@@ -1,0 +1,77 @@
+<view class="page pad-bar">
+  <view class="card" bindtap="pickAddress">
+    <view wx:if="{{address}}">
+      <view class="row-between">
+        <text style="font-weight: 600;">{{address.receiver}} {{address.mobile}}</text>
+        <text class="mute">更换</text>
+      </view>
+      <view class="mute">{{address.fullAddress}}</view>
+    </view>
+    <view wx:else>请选择收货地址</view>
+  </view>
+
+  <view class="card">
+    <view class="section" style="padding: 0 0 12rpx;">{{shopName}}</view>
+    <view class="row-between" style="padding: 12rpx 0;" wx:for="{{lines}}" wx:key="skuId">
+      <view class="grow">
+        <view class="clamp2">{{item.productName}}</view>
+        <view class="mute">{{item.specName}} × {{item.quantity}}</view>
+      </view>
+      <view class="price">{{item.priceText}}</view>
+    </view>
+    <view class="notice" wx:if="{{invalidText}}">{{invalidText}}</view>
+  </view>
+
+  <view class="card">
+    <view class="line"><text>商品</text><text>{{goodsText}}</text></view>
+    <view class="line"><text>运费</text><text>{{freightText}}</text></view>
+    <view class="line" bindtap="openCoupons"><text>优惠券</text><text>{{couponLabel}}</text></view>
+    <view class="line"><text>应付</text><text class="price">{{payText}}</text></view>
+    <view class="mute" wx:if="{{message}}">{{message}}</view>
+  </view>
+
+  <view class="field">
+    <view class="label">留言</view>
+    <input maxlength="200" placeholder="选填，200 字以内" value="{{remark}}" bindinput="onRemark" />
+  </view>
+
+  <view class="bar">
+    <view style="margin-right: auto;">
+      <view class="mute">应付</view>
+      <view class="price">{{payText}}</view>
+    </view>
+    <view class="btn {{canSubmit ? '' : 'disabled'}}" bindtap="submit">提交订单</view>
+  </view>
+</view>
+
+<view class="mask" wx:if="{{sheet}}" bindtap="closeSheet"></view>
+<view class="sheet" wx:if="{{sheet === 'address'}}">
+  <view class="sheet-title">收货地址</view>
+  <view
+    class="picker-item {{addressId === item.id ? 'on' : ''}}"
+    wx:for="{{addresses}}"
+    wx:key="id"
+    data-sid="id-{{item.id}}"
+    bindtap="chooseAddress"
+  >
+    <view>{{item.receiver}} {{item.mobile}}</view>
+    <view class="mute">{{item.fullAddress}}</view>
+  </view>
+  <view class="empty" wx:if="{{!addresses.length}}">还没有收货地址</view>
+  <view class="btn block" bindtap="addAddress">新增地址</view>
+</view>
+<view class="sheet" wx:if="{{sheet === 'coupon'}}">
+  <view class="sheet-title">优惠券</view>
+  <view class="picker-item {{!couponUserId ? 'on' : ''}}" bindtap="chooseCoupon" data-sid="">不使用</view>
+  <view
+    class="picker-item {{couponUserId === item.id ? 'on' : ''}}"
+    wx:for="{{coupons}}"
+    wx:key="id"
+    data-sid="id-{{item.id}}"
+    bindtap="chooseCoupon"
+  >
+    <view>{{item.name}}</view>
+    <view class="mute">满 {{item.thresholdText}} 减 {{item.reduceText}}</view>
+  </view>
+  <view class="empty" wx:if="{{!coupons.length}}">本单没有可用的优惠券</view>
+</view>

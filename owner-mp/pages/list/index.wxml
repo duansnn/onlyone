@@ -1,0 +1,33 @@
+<view class="page pad">
+  <view class="search">
+    <input
+      placeholder="搜商品，至少两个字"
+      confirm-type="search"
+      value="{{keyword}}"
+      bindconfirm="onSearch"
+      bindinput="onInput"
+    />
+  </view>
+  <scroll-view class="chips" scroll-x>
+    <view class="chip {{sort === '' ? 'on' : ''}}" data-sort="" bindtap="setSort">默认</view>
+    <view class="chip {{sort === 'priceAsc' ? 'on' : ''}}" data-sort="priceAsc" bindtap="setSort">价格从低到高</view>
+    <view class="chip {{sort === 'priceDesc' ? 'on' : ''}}" data-sort="priceDesc" bindtap="setSort">价格从高到低</view>
+  </scroll-view>
+  <view class="section" wx:if="{{categoryName}}">{{categoryName}}</view>
+  <view
+    class="list-item"
+    wx:for="{{rows}}"
+    wx:key="id"
+    data-sid="id-{{item.id}}"
+    bindtap="openProduct"
+  >
+    <image class="thumb" src="{{item.cover}}" mode="aspectFill" />
+    <view class="grow">
+      <view class="clamp2">{{item.name}}</view>
+      <view class="mute" wx:if="{{item.sellingPoint}}">{{item.sellingPoint}}</view>
+      <view class="price">{{item.priceText}}</view>
+    </view>
+  </view>
+  <view class="empty" wx:if="{{!loading && !rows.length}}">{{emptyText}}</view>
+  <view class="btn ghost block" wx:if="{{hasMore}}" bindtap="more">加载更多</view>
+</view>

@@ -1,0 +1,53 @@
+<view class="page pad-bar" wx:if="{{detail}}">
+  <swiper class="gallery" indicator-dots circular wx:if="{{detail.images.length}}">
+    <swiper-item wx:for="{{detail.images}}" wx:key="*this">
+      <image src="{{item}}" mode="aspectFill" />
+    </swiper-item>
+  </swiper>
+  <view class="gallery" wx:else></view>
+  <view class="card">
+    <view class="price" style="font-size: 40rpx;">{{priceText}}</view>
+    <view style="font-size: 34rpx; font-weight: 600; margin-top: 8rpx;">{{detail.name}}</view>
+    <view class="mute" wx:if="{{detail.sellingPoint}}">{{detail.sellingPoint}}</view>
+    <view class="mute">可售 {{sku.availableStock || 0}}</view>
+  </view>
+  <view class="card">
+    <view class="section" style="padding: 0 0 16rpx;">规格</view>
+    <view
+      class="sku {{item.on ? 'on' : ''}} {{item.sellable ? '' : 'off'}}"
+      wx:for="{{skus}}"
+      wx:key="id"
+      data-sid="id-{{item.id}}"
+      bindtap="pickSku"
+    >{{item.specName}}{{item.sellable ? '' : ' 缺货'}}</view>
+    <view class="row-between" style="margin-top: 8rpx;">
+      <text>数量</text>
+      <view class="stepper">
+        <view class="n" bindtap="minus">-</view>
+        <view class="q">{{quantity}}</view>
+        <view class="n" bindtap="plus">+</view>
+      </view>
+    </view>
+  </view>
+  <view class="card" wx:if="{{detailText}}">
+    <view class="section" style="padding: 0 0 12rpx;">详情</view>
+    <text>{{detailText}}</text>
+  </view>
+  <view class="card">
+    <view class="section" style="padding: 0 0 12rpx;">顾客评价（{{detail.reviewCount}}）</view>
+    <view class="mute" wx:if="{{!reviews.length}}">还没有评价</view>
+    <view wx:for="{{reviews}}" wx:key="id" style="padding: 16rpx 0; border-top: 1rpx solid #f2f2f2;">
+      <view class="row-between">
+        <text>{{item.nickname}}</text>
+        <text class="star">{{item.stars}}</text>
+      </view>
+      <view>{{item.content}}</view>
+      <view class="mute">{{item.timeText}}</view>
+    </view>
+  </view>
+  <view class="bar">
+    <view class="btn ghost" style="flex: 1;" bindtap="addCart">加入购物车</view>
+    <view class="btn {{sellable ? '' : 'disabled'}}" style="flex: 1;" bindtap="buyNow">{{sellable ? '立即购买' : '暂时缺货'}}</view>
+  </view>
+</view>
+<view class="empty" wx:elif="{{!loading}}">商品不存在或已下架</view>

@@ -1,0 +1,25 @@
+<view class="page">
+  <view class="field">
+    <view class="label">收件人</view>
+    <input value="{{receiver}}" maxlength="32" bindinput="onReceiver" placeholder="姓名" />
+  </view>
+  <view class="field">
+    <view class="label">手机</view>
+    <input type="number" maxlength="11" value="{{mobile}}" bindinput="onMobile" placeholder="11 位手机号" />
+  </view>
+  <picker mode="region" value="{{region}}" bindchange="onRegion">
+    <view class="field">
+      <view class="label">省市区</view>
+      <view style="padding: 12rpx 0 18rpx;">{{regionText}}</view>
+    </view>
+  </picker>
+  <view class="field">
+    <view class="label">详细地址</view>
+    <textarea maxlength="255" value="{{detail}}" bindinput="onDetail" placeholder="街道、门牌" />
+  </view>
+  <view class="card row-between">
+    <text>设为默认地址</text>
+    <switch checked="{{isDefault}}" bindchange="onDefault" color="#111111" />
+  </view>
+  <view class="btn block" bindtap="save">保存</view>
+</view>

@@ -11,6 +11,7 @@ import com.owner.system.mall.service.PaymentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -22,6 +23,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 /**
@@ -47,6 +52,25 @@ public class AdminOrderController {
             @Parameter(description = "下单日期止 yyyy-MM-dd") @RequestParam(required = false) String dateTo,
             PageQuery query) {
         return R.ok(orderService.shopOrders(shopId, status, orderNo, receiverMobile, dateFrom, dateTo, query));
+    }
+
+    @Operation(summary = "导出订单 Excel", description = "筛选条件与订单列表相同。一行一单，手机号为完整号码。没有订单或超过 5000 单时返回业务错误。")
+    @GetMapping("/export")
+    public void export(
+            @PathVariable Long shopId,
+            @Parameter(description = "订单状态") @RequestParam(required = false) String status,
+            @Parameter(description = "订单号，精确") @RequestParam(required = false) String orderNo,
+            @Parameter(description = "收件人手机号，精确") @RequestParam(required = false) String receiverMobile,
+            @Parameter(description = "下单日期起 yyyy-MM-dd") @RequestParam(required = false) String dateFrom,
+            @Parameter(description = "下单日期止 yyyy-MM-dd") @RequestParam(required = false) String dateTo,
+            HttpServletResponse response) throws java.io.IOException {
+        byte[] body = orderService.exportShopOrders(shopId, status, orderNo, receiverMobile, dateFrom, dateTo);
+        String filename = "订单-" + DateTimeFormatter.ofPattern("yyyyMMddHHmm").format(LocalDateTime.now()) + ".xlsx";
+        String encoded = URLEncoder.encode(filename, StandardCharsets.UTF_8).replace("+", "%20");
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setHeader("Content-Disposition", "attachment; filename*=UTF-8''" + encoded);
+        response.setContentLength(body.length);
+        response.getOutputStream().write(body);
     }
 
     @Operation(summary = "常用快递公司")

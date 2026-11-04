@@ -100,6 +100,21 @@ export const adminOrderApi = {
   detail: (shopId: string, orderId: string) =>
     get<OrderDetail>(`/shop/${shopId}/orders/${orderId}`),
   shipCompanies: (shopId: string) => get<string[]>(`/shop/${shopId}/orders/ship-companies`),
+  /** 按当前筛选导出 xlsx。业务错误时后端仍返回 JSON，调用侧要按 blob 再判断。 */
+  export: (
+    shopId: string,
+    params?: {
+      status?: string;
+      orderNo?: string;
+      receiverMobile?: string;
+      dateFrom?: string;
+      dateTo?: string;
+    },
+  ) =>
+    get<Blob>(`/shop/${shopId}/orders/export`, params, {
+      responseType: 'blob',
+      timeout: 60000,
+    }),
   /** 线下收款：商家确认收到钱，订单从「待确认」转「待发货」 */
   confirmPayment: (shopId: string, orderId: string) =>
     post<void>(`/shop/${shopId}/orders/${orderId}/confirm-payment`),

@@ -16,6 +16,7 @@ import {
   Tag,
   Timeline,
 } from 'antd';
+import { DownloadOutlined } from '@ant-design/icons';
 import { useSearchParams } from 'react-router-dom';
 import dayjs from 'dayjs';
 import { adminOrderApi } from '@/api/admin';
@@ -67,6 +68,7 @@ export default function AdminOrders() {
   const [shipTarget, setShipTarget] = useState<OrderSummary | null>(null);
   const [shipForm] = Form.useForm();
   const [filterForm] = Form.useForm();
+  const [exporting, setExporting] = useState(false);
 
   const status = searchParams.get('status') ?? '';
 
@@ -139,6 +141,46 @@ export default function AdminOrders() {
     }
   };
 
+  const exportOrders = async () => {
+    if (!shopId || exporting) return;
+    const values = filterForm.getFieldsValue();
+    setExporting(true);
+    try {
+      const blob = await adminOrderApi.export(shopId, {
+        status: status || undefined,
+        orderNo: values.orderNo || undefined,
+        receiverMobile: values.receiverMobile || undefined,
+        dateFrom: values.range?.[0] ? values.range[0].format('YYYY-MM-DD') : undefined,
+        dateTo: values.range?.[1] ? values.range[1].format('YYYY-MM-DD') : undefined,
+      });
+      if (blob.type.includes('json') || blob.type.startsWith('text/')) {
+        const text = await blob.text();
+        let message = '导出失败';
+        try {
+          const body = JSON.parse(text) as { msg?: string };
+          if (body.msg) message = body.msg;
+        } catch {
+          /* 不是 JSON 时用默认文案 */
+        }
+        toast.error(message);
+        return;
+      }
+      const href = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = href;
+      link.download = `订单-${dayjs().format('YYYYMMDD-HHmm')}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(href);
+      toast.success('已开始下载');
+    } catch {
+      /* 网络错误由拦截器提示 */
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const submitShip = async () => {
     if (!shipTarget) return;
     const values = await shipForm.validateFields();
@@ -206,6 +248,11 @@ export default function AdminOrders() {
                 }}
               >
                 重置
+              </Button>
+            </Form.Item>
+            <Form.Item>
+              <Button icon={<DownloadOutlined />} loading={exporting} onClick={() => void exportOrders()}>
+                导出 Excel
               </Button>
             </Form.Item>
           </Form>

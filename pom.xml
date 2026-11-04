@@ -53,6 +53,7 @@
           这里统一锁定到 2.2.47。
         -->
         <swagger.version>2.2.47</swagger.version>
+        <poi.version>5.4.1</poi.version>
     </properties>
 
     <dependencyManagement>
@@ -133,6 +134,13 @@
                 <groupId>io.swagger.core.v3</groupId>
                 <artifactId>swagger-annotations</artifactId>
                 <version>${swagger.version}</version>
+            </dependency>
+
+            <!-- 订单导出 Excel -->
+            <dependency>
+                <groupId>org.apache.poi</groupId>
+                <artifactId>poi-ooxml</artifactId>
+                <version>${poi.version}</version>
             </dependency>
 
             <!-- 工具 -->

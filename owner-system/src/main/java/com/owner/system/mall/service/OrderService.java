@@ -1,5 +1,6 @@
 package com.owner.system.mall.service;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.owner.common.core.domain.PageQuery;
@@ -68,6 +69,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * 订单服务：计价、提交、锁定库存、取消、确认收货、后台发货，以及超时/自动完成的批量处理。
@@ -87,6 +89,9 @@ public class OrderService {
 
     /** 确认收货后可申请售后的天数 */
     public static final int REFUND_WINDOW_DAYS = 7;
+
+    /** 一次导出的订单上限，避免把全部历史一次性写进内存 */
+    public static final int EXPORT_MAX = 5000;
 
     /** 常用快递公司 */
     public static final List<String> SHIP_COMPANIES = List.of(
@@ -412,22 +417,56 @@ public class OrderService {
                                           String receiverMobile, String dateFrom, String dateTo,
                                           PageQuery query) {
         shopGuard.requireMember(shopId);
+        Page<OrderInfo> page = orderInfoMapper.selectPage(
+                new Page<>(query.getPageNumOrDefault(), query.getPageSizeOrDefault()),
+                shopOrderFilter(shopId, status, orderNo, receiverMobile, dateFrom, dateTo));
+        return PageResult.of(toVoList(page.getRecords()), page.getTotal(),
+                page.getCurrent(), page.getSize());
+    }
+
+    /**
+     * 按后台列表同一套筛选导出 Excel。手机号用下单时的完整号码，供发货核对。
+     * 没有订单或超过 {@link #EXPORT_MAX} 时拒绝，不生成空文件或半份文件。
+     */
+    public byte[] exportShopOrders(Long shopId, String status, String orderNo,
+                                   String receiverMobile, String dateFrom, String dateTo) {
+        shopGuard.requireMember(shopId);
+        List<OrderInfo> orders = orderInfoMapper.selectList(
+                shopOrderFilter(shopId, status, orderNo, receiverMobile, dateFrom, dateTo)
+                        .last("LIMIT " + (EXPORT_MAX + 1)));
+        if (orders.isEmpty()) {
+            throw new ServiceException(ResultCode.BUSINESS_ERROR, "当前筛选没有可导出的订单");
+        }
+        if (orders.size() > EXPORT_MAX) {
+            throw new ServiceException(ResultCode.BUSINESS_ERROR,
+                    "一次最多导出 " + EXPORT_MAX + " 单，请缩小日期或状态范围");
+        }
+        List<Long> orderIds = orders.stream().map(OrderInfo::getId).toList();
+        Map<Long, List<OrderItem>> itemsByOrder = orderItemMapper.selectList(
+                        Wrappers.<OrderItem>lambdaQuery()
+                                .in(OrderItem::getOrderId, orderIds)
+                                .orderByAsc(OrderItem::getId))
+                .stream()
+                .collect(Collectors.groupingBy(OrderItem::getOrderId));
+        return OrderExcel.write(orders, itemsByOrder);
+    }
+
+    /** 后台订单列表和导出共用的筛选，按创建时间倒序 */
+    private LambdaQueryWrapper<OrderInfo> shopOrderFilter(
+            Long shopId, String status, String orderNo, String receiverMobile,
+            String dateFrom, String dateTo) {
         OrderStatus statusFilter = OrderStatus.of(status);
         LocalDateTime from = parseStartOfDay(dateFrom);
         LocalDateTime to = parseEndOfDay(dateTo);
-        Page<OrderInfo> page = orderInfoMapper.selectPage(
-                new Page<>(query.getPageNumOrDefault(), query.getPageSizeOrDefault()),
-                Wrappers.<OrderInfo>lambdaQuery()
-                        .eq(OrderInfo::getShopId, shopId)
-                        .eq(statusFilter != null, OrderInfo::getStatus,
-                                statusFilter == null ? null : statusFilter.name())
-                        .eq(StringUtils.isNotBlank(orderNo), OrderInfo::getOrderNo, orderNo)
-                        .eq(StringUtils.isNotBlank(receiverMobile), OrderInfo::getReceiverMobile, receiverMobile)
-                        .ge(from != null, OrderInfo::getCreateTime, from)
-                        .le(to != null, OrderInfo::getCreateTime, to)
-                        .orderByDesc(OrderInfo::getCreateTime));
-        return PageResult.of(toVoList(page.getRecords()), page.getTotal(),
-                page.getCurrent(), page.getSize());
+        return Wrappers.<OrderInfo>lambdaQuery()
+                .eq(OrderInfo::getShopId, shopId)
+                .eq(statusFilter != null, OrderInfo::getStatus,
+                        statusFilter == null ? null : statusFilter.name())
+                .eq(StringUtils.isNotBlank(orderNo), OrderInfo::getOrderNo, orderNo)
+                .eq(StringUtils.isNotBlank(receiverMobile), OrderInfo::getReceiverMobile, receiverMobile)
+                .ge(from != null, OrderInfo::getCreateTime, from)
+                .le(to != null, OrderInfo::getCreateTime, to)
+                .orderByDesc(OrderInfo::getCreateTime);
     }
 
     /** 后台订单详情（店主与店员能看完整手机号，因为要发货） */

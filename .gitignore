@@ -42,6 +42,9 @@ dist/
 *.local
 .eslintcache
 
+### 构建产物压缩包 ###
+*.zip
+
 ### Env / secrets ###
 .env
 .env.local

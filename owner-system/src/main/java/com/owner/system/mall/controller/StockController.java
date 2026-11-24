@@ -4,12 +4,17 @@ import com.owner.common.core.domain.PageQuery;
 import com.owner.common.core.domain.PageResult;
 import com.owner.common.core.domain.R;
 import com.owner.system.mall.domain.dto.StockAdjustDTO;
+import com.owner.system.mall.domain.dto.StockSafeDTO;
+import com.owner.system.mall.domain.dto.StockTakeCreateDTO;
+import com.owner.system.mall.domain.dto.StockTakeSubmitDTO;
 import com.owner.system.mall.domain.vo.SkuStockVO;
 import com.owner.system.mall.domain.vo.StockLogVO;
+import com.owner.system.mall.domain.vo.StockTakeVO;
 import com.owner.system.mall.service.StockService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -19,6 +24,12 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
 
 /**
  * 店铺后台-库存：按 SKU 看可售数量，手动调整，看流水。
@@ -41,6 +52,21 @@ public class StockController {
         return R.ok(stockService.pageSku(shopId, keyword, productId, query));
     }
 
+    @Operation(summary = "导出库存 Excel", description = "筛选条件与 SKU 列表相同。没有数据或超过 5000 条时返回业务错误。")
+    @GetMapping("/skus/export")
+    public void exportSkus(@PathVariable Long shopId,
+                           @Parameter(description = "规格名/货号模糊搜索") @RequestParam(required = false) String keyword,
+                           @Parameter(description = "限定某个商品") @RequestParam(required = false) Long productId,
+                           HttpServletResponse response) throws java.io.IOException {
+        byte[] body = stockService.exportSkus(shopId, keyword, productId);
+        String filename = "库存-" + DateTimeFormatter.ofPattern("yyyyMMddHHmm").format(LocalDateTime.now()) + ".xlsx";
+        String encoded = URLEncoder.encode(filename, StandardCharsets.UTF_8).replace("+", "%20");
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setHeader("Content-Disposition", "attachment; filename*=UTF-8''" + encoded);
+        response.setContentLength(body.length);
+        response.getOutputStream().write(body);
+    }
+
     @Operation(summary = "调整库存", description = "填调整后的数量和原因；不能把可售库存打成负数")
     @PostMapping("/adjust")
     public R<Void> adjust(@PathVariable Long shopId, @Valid @RequestBody StockAdjustDTO dto) {
@@ -55,5 +81,51 @@ public class StockController {
             @Parameter(description = "限定某个规格") @RequestParam(required = false) Long skuId,
             PageQuery query) {
         return R.ok(stockService.pageLogs(shopId, skuId, query));
+    }
+
+    @Operation(summary = "导出库存流水 Excel", description = "筛选条件与流水列表相同。没有数据或超过 5000 条时返回业务错误。")
+    @GetMapping("/logs/export")
+    public void exportLogs(@PathVariable Long shopId,
+                           @Parameter(description = "限定某个规格") @RequestParam(required = false) Long skuId,
+                           HttpServletResponse response) throws java.io.IOException {
+        byte[] body = stockService.exportLogs(shopId, skuId);
+        String filename = "库存流水-" + DateTimeFormatter.ofPattern("yyyyMMddHHmm").format(LocalDateTime.now()) + ".xlsx";
+        String encoded = URLEncoder.encode(filename, StandardCharsets.UTF_8).replace("+", "%20");
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setHeader("Content-Disposition", "attachment; filename*=UTF-8''" + encoded);
+        response.setContentLength(body.length);
+        response.getOutputStream().write(body);
+    }
+
+    @Operation(summary = "库存预警", description = "可售库存 <= 安全阈值的 SKU，按可售升序")
+    @GetMapping("/warnings")
+    public R<List<SkuStockVO>> warnings(@PathVariable Long shopId) {
+        return R.ok(stockService.warnings(shopId));
+    }
+
+    @Operation(summary = "设置安全库存阈值", description = "safeStock 传 null 表示取消预警")
+    @PostMapping("/safe-stock")
+    public R<Void> safeStock(@PathVariable Long shopId, @Valid @RequestBody StockSafeDTO dto) {
+        stockService.setSafeStock(shopId, dto);
+        return R.ok();
+    }
+
+    @Operation(summary = "新建盘点单")
+    @PostMapping("/takes")
+    public R<StockTakeVO> createTake(@PathVariable Long shopId, @Valid @RequestBody StockTakeCreateDTO dto) {
+        return R.ok(stockService.createTake(shopId, dto));
+    }
+
+    @Operation(summary = "提交盘点", description = "逐条按「实盘-账面」生成差异调整，并把盘点单置为已完成")
+    @PostMapping("/takes/{takeId}/submit")
+    public R<StockTakeVO> submitTake(@PathVariable Long shopId, @PathVariable Long takeId,
+                                     @Valid @RequestBody StockTakeSubmitDTO dto) {
+        return R.ok(stockService.submitTake(shopId, takeId, dto));
+    }
+
+    @Operation(summary = "盘点单列表（含明细）")
+    @GetMapping("/takes")
+    public R<List<StockTakeVO>> listTakes(@PathVariable Long shopId) {
+        return R.ok(stockService.listTakes(shopId));
     }
 }

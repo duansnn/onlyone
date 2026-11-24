@@ -20,6 +20,7 @@ import { useAuthStore } from '@/store/auth';
 import { toast } from '@/utils/feedback';
 import { dt, money, refundStatusTone } from '@/utils/format';
 import StatusTag from '@/components/StatusTag';
+import EmptyState from '@/components/EmptyState';
 import type { Refund } from '@/types/mall';
 
 const FILTERS = [
@@ -148,7 +149,16 @@ export default function AdminRefunds() {
       {loading ? (
         <Skeleton active />
       ) : rows.length === 0 ? (
-        <Card>{status === 'OPEN' ? '没有未完结的售后，历史售后单可以切到「全部」查看' : '暂无售后申请'}</Card>
+        <Card>
+          <EmptyState
+            title={status === 'OPEN' ? '没有待处理的售后' : '暂无售后申请'}
+            description={
+              status === 'OPEN'
+                ? '所有售后都处理完了。历史售后单可以切到「全部」查看。'
+                : '顾客申请退款后会出现在这里，按整单处理。'
+            }
+          />
+        </Card>
       ) : (
         rows.map((r) => (
           <Card

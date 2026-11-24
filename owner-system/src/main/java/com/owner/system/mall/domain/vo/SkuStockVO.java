@@ -35,6 +35,9 @@ public record SkuStockVO(
         @Schema(description = "可售库存")
         Integer availableStock,
 
+        @Schema(description = "安全库存阈值，null 表示不预警")
+        Integer safeStock,
+
         @Schema(description = "状态：0 启用，1 停用")
         Integer status,
 

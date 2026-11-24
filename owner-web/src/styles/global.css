@@ -900,3 +900,137 @@ h2,
     font-size: 26px;
   }
 }
+
+/* ==========================================================================
+   全局动效 / 过渡（低风险、纯 CSS，全站生效）
+   ========================================================================== */
+
+/* 页面淡入上移：路由切换时让内容柔和地浮现 */
+@keyframes owner-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 后台内容区 / 看板 / 列表页整体入场 */
+.admin-content > *,
+.mall-page-fade {
+  animation: owner-fade-up 0.32s ease both;
+}
+
+/* 尊重「减少动态」系统偏好：关闭动画的人不受影响 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* 卡片悬浮：轻微上浮 + 阴影，比默认 hover 更有层次 */
+.admin-shell .ant-card-hoverable:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 26px -14px rgba(23, 19, 15, 0.28);
+}
+
+/* 主按钮 hover 微动效（全局，覆盖 antd 默认） */
+.admin-shell .ant-btn-primary:not(:disabled):hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px -8px rgba(255, 90, 31, 0.6);
+}
+
+/* 登录页：左侧故事版与右侧面板轻柔入场 */
+.owner-login__story > *,
+.owner-login__panel > * {
+  animation: owner-fade-up 0.5s ease both;
+}
+.owner-login__story > *:nth-child(2) { animation-delay: 0.05s; }
+.owner-login__story > *:nth-child(3) { animation-delay: 0.12s; }
+.owner-login__story > *:nth-child(4) { animation-delay: 0.18s; }
+.owner-login__panel > *:nth-child(2) { animation-delay: 0.08s; }
+.owner-login__panel > *:nth-child(3) { animation-delay: 0.14s; }
+
+/* 店面首页首屏文案逐行浮现 */
+.sf-hero__kicker,
+.sf-hero__title,
+.sf-hero__desc,
+.sf-hero__stats,
+.sf-hero__notice {
+  animation: owner-fade-up 0.5s ease both;
+}
+.sf-hero__title { animation-delay: 0.06s; }
+.sf-hero__desc { animation-delay: 0.14s; }
+.sf-hero__stats { animation-delay: 0.22s; }
+.sf-hero__notice { animation-delay: 0.28s; }
+
+/* 侧栏菜单项 hover 平滑过渡 */
+.admin-shell .ant-menu-item {
+  transition: background-color 0.16s ease, color 0.16s ease;
+}
+
+/* 全局滚动条美化（WebKit）：细窄、圆润、跟暖橙主色呼应 */
+::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+::-webkit-scrollbar-thumb {
+  background: #d8cfc2;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #c3b7a6;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ==========================================================================
+   统一空状态 EmptyState
+   ========================================================================== */
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 48px 24px;
+  text-align: center;
+}
+
+.empty-state--compact {
+  padding: 28px 16px;
+}
+
+.empty-state__art {
+  margin-bottom: 8px;
+  opacity: 0.92;
+}
+
+.empty-state__title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #3f3831;
+}
+
+.empty-state__desc {
+  max-width: 360px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: #a89f95;
+}
+
+.empty-state__action {
+  margin-top: 14px;
+  border-radius: 8px;
+}

@@ -19,7 +19,9 @@ public enum StockReason {
     /** 取消释放 */
     CANCEL("取消释放"),
     /** 售后退回 */
-    RETURN("售后退回");
+    RETURN("售后退回"),
+    /** 盘点调整 */
+    TAKE("盘点调整");
 
     private final String label;
 

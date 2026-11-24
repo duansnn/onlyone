@@ -1759,3 +1759,63 @@
   font-size: 12px;
   line-height: 20px;
 }
+
+/* ==========================================================================
+   看板统计卡升级：图标 + 渐变底 + 环比涨跌箭头
+   ========================================================================== */
+
+.admin-stat-card {
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* 卡片左上角一个淡淡的装饰圆，增加层次 */
+.admin-stat-card::before {
+  content: '';
+  position: absolute;
+  right: -30px;
+  top: -30px;
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 90, 31, 0.08), transparent 70%);
+  pointer-events: none;
+}
+
+.admin-stat-card__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  font-size: 18px;
+  color: #ff5a1f;
+  background: linear-gradient(135deg, #fff2ec, #ffe3d6);
+}
+
+.admin-stat-card__icon.is-blue { color: #3b82c4; background: linear-gradient(135deg, #eef4fd, #dbeafe); }
+.admin-stat-card__icon.is-green { color: #2f9e6b; background: linear-gradient(135deg, #ecf7f1, #d7f0e3); }
+.admin-stat-card__icon.is-amber { color: #f0a202; background: linear-gradient(135deg, #fff6e5, #ffedc9); }
+.admin-stat-card__icon.is-violet { color: #8b5cf6; background: linear-gradient(135deg, #f3effd, #e6ddfc); }
+
+/* 数值 + 环比箭头同行 */
+.admin-stat-card__value-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.admin-stat-card__delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.admin-stat-card__delta.is-up { color: #2f9e6b; }
+.admin-stat-card__delta.is-down { color: #d64545; }
+.admin-stat-card__delta.is-flat { color: #b8afa4; }

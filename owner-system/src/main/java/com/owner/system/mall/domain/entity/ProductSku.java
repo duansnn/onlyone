@@ -45,6 +45,9 @@ public class ProductSku implements Serializable {
     /** 未支付订单锁定量 */
     private Integer lockedStock;
 
+    /** 安全库存阈值，可售 <= 阈值时预警；null 表示不预警 */
+    private Integer safeStock;
+
     /** 货号，店内唯一，可空 */
     private String skuCode;
 

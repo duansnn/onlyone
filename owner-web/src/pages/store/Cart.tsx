@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Button, Card, Checkbox, Empty, InputNumber, Popconfirm, Skeleton, Space, Tag } from 'antd';
+import { Button, Card, Checkbox, InputNumber, Popconfirm, Skeleton, Space, Tag } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import { cartApi } from '@/api/mall';
+import EmptyState from '@/components/EmptyState';
 import SafeImage from '@/components/SafeImage';
 import { useAuthStore } from '@/store/auth';
 import { toast } from '@/utils/feedback';
@@ -104,12 +105,11 @@ export default function Cart() {
   if (!cart || groups.length === 0) {
     return (
       <Card>
-        <Empty description="购物车还是空的" />
-        <div style={{ textAlign: 'center', marginTop: 16 }}>
-          <Button type="primary" onClick={() => navigate('/products')}>
-            去挑点东西
-          </Button>
-        </div>
+        <EmptyState
+          title="购物车还是空的"
+          description="去挑几件日常好物，先加进购物车慢慢看。"
+          action={{ label: '去挑点东西', onClick: () => navigate('/products') }}
+        />
       </Card>
     );
   }

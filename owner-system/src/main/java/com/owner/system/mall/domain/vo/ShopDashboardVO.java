@@ -14,8 +14,14 @@ public record ShopDashboardVO(
         @Schema(description = "今日订单数")
         long todayOrderCount,
 
+        @Schema(description = "昨日订单数（用于环比）")
+        long yesterdayOrderCount,
+
         @Schema(description = "今日支付金额（分）")
         long todayPaidAmount,
+
+        @Schema(description = "昨日支付金额（分，用于环比）")
+        long yesterdayPaidAmount,
 
         @Schema(description = "待发货数")
         long pendingShipmentCount,

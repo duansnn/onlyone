@@ -132,14 +132,12 @@ public class CartService {
                     invalidByShop.getOrDefault(shopId, List.of())));
         }
         long validCount = validByShop.values().stream().mapToLong(List::size).sum();
-        return new CartVO(groups, items.size(), validCount);
+        return new CartVO(groups, validCount, validCount);
     }
 
-    /** 购物车行数 */
+    /** 购物车行数（角标用）。只统计可结算的有效行，失效行（下架/缺货/已删除）不计入。 */
     public long count() {
-        Long userId = MallCurrentUser.requireUserId();
-        return cartItemMapper.selectCount(Wrappers.<CartItem>lambdaQuery()
-                .eq(CartItem::getUserId, userId));
+        return list().validItemCount();
     }
 
     // ------------------------------------------------------------------

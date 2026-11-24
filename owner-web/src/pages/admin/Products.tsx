@@ -16,6 +16,7 @@ import {
 import {
   CheckCircleFilled,
   DeleteOutlined,
+  DownloadOutlined,
   EditOutlined,
   FileTextOutlined,
   PlusOutlined,
@@ -23,6 +24,7 @@ import {
   TagsOutlined,
   InfoCircleOutlined,
 } from '@ant-design/icons';
+import dayjs from 'dayjs';
 import { categoryApi, productApi } from '@/api/admin';
 import ImageUploader from '@/components/ImageUploader';
 import SafeImage from '@/components/SafeImage';
@@ -85,6 +87,7 @@ export default function Products() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [version, setVersion] = useState<number | undefined>(undefined);
   const [saving, setSaving] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [form] = Form.useForm<ProductForm>();
 
   // 右侧预览卡片要跟着表单实时变，这几个值单独盯着
@@ -140,6 +143,42 @@ export default function Products() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  const exportProducts = async () => {
+    if (!shopId || exporting) return;
+    setExporting(true);
+    try {
+      const blob = await productApi.export(shopId, {
+        keyword: keyword || undefined,
+        status: status || undefined,
+      });
+      if (blob.type.includes('json') || blob.type.startsWith('text/')) {
+        const text = await blob.text();
+        let message = '导出失败';
+        try {
+          const body = JSON.parse(text) as { msg?: string };
+          if (body.msg) message = body.msg;
+        } catch {
+          /* 不是 JSON 时用默认文案 */
+        }
+        toast.error(message);
+        return;
+      }
+      const href = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = href;
+      link.download = `商品-${dayjs().format('YYYYMMDD-HHmm')}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(href);
+      toast.success('已开始下载');
+    } catch {
+      /* 网络错误由拦截器提示 */
+    } finally {
+      setExporting(false);
+    }
+  };
 
   useEffect(() => {
     if (!shopId) return;
@@ -283,6 +322,9 @@ export default function Products() {
           />
           <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
             新建商品
+          </Button>
+          <Button icon={<DownloadOutlined />} loading={exporting} onClick={() => void exportProducts()}>
+            导出 Excel
           </Button>
         </Space>
       </Card>

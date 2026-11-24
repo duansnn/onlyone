@@ -4,6 +4,7 @@ import com.owner.common.core.domain.R;
 import com.owner.system.mall.domain.dto.MemberCreateDTO;
 import com.owner.system.mall.domain.dto.MemberUpdateDTO;
 import com.owner.system.mall.domain.dto.ShopUpdateDTO;
+import com.owner.system.mall.domain.vo.ShopAnalyticsVO;
 import com.owner.system.mall.domain.vo.ShopDashboardVO;
 import com.owner.system.mall.domain.vo.ShopMemberVO;
 import com.owner.system.mall.domain.vo.ShopVO;
@@ -38,6 +39,12 @@ public class ShopAdminController {
     @GetMapping("/{shopId}/dashboard")
     public R<ShopDashboardVO> dashboard(@PathVariable Long shopId) {
         return R.ok(shopService.dashboard(shopId));
+    }
+
+    @Operation(summary = "店铺经营分析", description = "近 30 天销售趋势、热销商品 Top10、类目销售占比")
+    @GetMapping("/{shopId}/analytics")
+    public R<ShopAnalyticsVO> analytics(@PathVariable Long shopId) {
+        return R.ok(shopService.analytics(shopId));
     }
 
     @Operation(summary = "店铺资料")

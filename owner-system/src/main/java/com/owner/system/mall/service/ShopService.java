@@ -21,6 +21,7 @@ import com.owner.system.mall.domain.enums.RefundStatus;
 import com.owner.system.mall.domain.enums.ShopRole;
 import com.owner.system.mall.domain.vo.PlatformOverviewVO;
 import com.owner.system.mall.domain.vo.PlatformShopVO;
+import com.owner.system.mall.domain.vo.ShopAnalyticsVO;
 import com.owner.system.mall.domain.vo.ShopDashboardVO;
 import com.owner.system.mall.domain.vo.ShopMemberVO;
 import com.owner.system.mall.domain.vo.ShopVO;
@@ -40,6 +41,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -383,12 +385,18 @@ public class ShopService {
         shopGuard.requireMember(shopId);
         LocalDateTime start = LocalDate.now().atStartOfDay();
         LocalDateTime end = start.plusDays(1);
+        LocalDateTime yesterdayStart = start.minusDays(1);
 
         long todayOrders = orderInfoMapper.selectCount(Wrappers.<OrderInfo>lambdaQuery()
                 .eq(OrderInfo::getShopId, shopId)
                 .ge(OrderInfo::getCreateTime, start)
                 .lt(OrderInfo::getCreateTime, end));
+        long yesterdayOrders = orderInfoMapper.selectCount(Wrappers.<OrderInfo>lambdaQuery()
+                .eq(OrderInfo::getShopId, shopId)
+                .ge(OrderInfo::getCreateTime, yesterdayStart)
+                .lt(OrderInfo::getCreateTime, start));
         long todayPaid = orZero(orderInfoMapper.sumPaidAmountByShop(shopId, start, end));
+        long yesterdayPaid = orZero(orderInfoMapper.sumPaidAmountByShop(shopId, yesterdayStart, start));
         long pendingShipment = orderInfoMapper.selectCount(Wrappers.<OrderInfo>lambdaQuery()
                 .eq(OrderInfo::getShopId, shopId)
                 .eq(OrderInfo::getStatus, OrderStatus.PENDING_SHIPMENT.name()));
@@ -398,7 +406,54 @@ public class ShopService {
                 .eq(com.owner.system.mall.domain.entity.Product::getStatus,
                         com.owner.system.mall.domain.enums.ProductStatus.ON_SALE.name()));
 
-        return new ShopDashboardVO(todayOrders, todayPaid, pendingShipment, pendingRefund, onSaleProduct);
+        return new ShopDashboardVO(todayOrders, yesterdayOrders, todayPaid, yesterdayPaid,
+                pendingShipment, pendingRefund, onSaleProduct);
+    }
+
+    /** 店铺经营分析：近 30 天销售趋势 + 热销商品 Top10 + 类目销售占比 */
+    public ShopAnalyticsVO analytics(Long shopId) {
+        shopGuard.requireMember(shopId);
+        LocalDate today = LocalDate.now();
+        LocalDateTime start = today.minusDays(29).atStartOfDay();
+        LocalDateTime end = today.plusDays(1).atStartOfDay();
+
+        // 1) 销售趋势：把 DB 返回的按天结果补成连续 30 天
+        Map<String, long[]> byDay = new HashMap<>();
+        for (Map<String, Object> row : orderInfoMapper.dailySalesTrend(shopId, start, end)) {
+            String day = String.valueOf(row.get("day"));
+            long orderCount = asLong(row.get("orderCount"));
+            long paidAmount = asLong(row.get("paidAmount"));
+            byDay.put(day, new long[]{orderCount, paidAmount});
+        }
+        List<ShopAnalyticsVO.DailyPoint> trend = new ArrayList<>(30);
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+        for (int i = 29; i >= 0; i--) {
+            String day = today.minusDays(i).format(fmt);
+            long[] v = byDay.getOrDefault(day, new long[]{0L, 0L});
+            trend.add(new ShopAnalyticsVO.DailyPoint(day, v[0], v[1]));
+        }
+
+        // 2) 热销商品 Top10
+        List<ShopAnalyticsVO.TopProduct> topProducts = new ArrayList<>();
+        for (Map<String, Object> row : orderInfoMapper.topProducts(shopId, start, end, 10)) {
+            topProducts.add(new ShopAnalyticsVO.TopProduct(
+                    String.valueOf(row.get("productName")),
+                    asLong(row.get("quantity")),
+                    asLong(row.get("amount"))));
+        }
+
+        // 3) 类目销售占比（只保留销售额 > 0 的，前端画饼图）
+        List<ShopAnalyticsVO.CategoryPoint> categorySales = new ArrayList<>();
+        for (Map<String, Object> row : orderInfoMapper.categorySales(shopId, start, end)) {
+            long amount = asLong(row.get("amount"));
+            if (amount <= 0) {
+                continue;
+            }
+            categorySales.add(new ShopAnalyticsVO.CategoryPoint(
+                    String.valueOf(row.get("categoryName")), amount));
+        }
+
+        return new ShopAnalyticsVO(trend, topProducts, categorySales);
     }
 
     // ------------------------------------------------------------------
@@ -478,6 +533,21 @@ public class ShopService {
 
     private long orZero(Long value) {
         return value == null ? 0L : value;
+    }
+
+    /** 把聚合结果里的数字安全转成 long */
+    private long asLong(Object value) {
+        if (value instanceof Number num) {
+            return num.longValue();
+        }
+        if (value == null) {
+            return 0L;
+        }
+        try {
+            return Long.parseLong(String.valueOf(value));
+        } catch (NumberFormatException e) {
+            return 0L;
+        }
     }
 
     /** 把 [ {shopId, <key>} ] 转成 Map<shopId, Long> */

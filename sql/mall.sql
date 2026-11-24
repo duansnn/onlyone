@@ -162,6 +162,7 @@ CREATE TABLE IF NOT EXISTS `product_sku`
     `list_price`   BIGINT               DEFAULT NULL COMMENT '划线价（分），只展示不参与结算',
     `stock`        INT         NOT NULL DEFAULT 0 COMMENT '库存，不能为负',
     `locked_stock` INT         NOT NULL DEFAULT 0 COMMENT '未支付订单锁定量',
+    `safe_stock`   INT                  DEFAULT NULL COMMENT '安全库存阈值，可售<=阈值时预警，NULL 不预警',
     `sku_code`     VARCHAR(64)          DEFAULT NULL COMMENT '货号，店内唯一，可空',
     `weight_gram`  INT                  DEFAULT NULL COMMENT '重量（克），留给以后算运费',
     `status`       TINYINT     NOT NULL DEFAULT 0 COMMENT '状态：0 启用，1 停用',
@@ -199,6 +200,44 @@ CREATE TABLE IF NOT EXISTS `stock_log`
     KEY `idx_stock_log_shop` (`shop_id`, `create_time`)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4 COMMENT ='库存流水';
+
+-- ----------------------------------------------------------------------
+-- stock_take 库存盘点单
+--   一次盘点可含多个 SKU 的实盘数；提交后按差异生成手动调整（写 stock_log）。
+--   status：DRAFT 草稿（登记中），DONE 已完成（已生成差异调整）
+-- ----------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `stock_take`
+(
+    `id`          BIGINT      NOT NULL COMMENT '主键',
+    `shop_id`     BIGINT      NOT NULL COMMENT '店铺',
+    `title`       VARCHAR(64) NOT NULL COMMENT '盘点单标题，如「10 月底盘点」',
+    `status`      VARCHAR(16) NOT NULL DEFAULT 'DRAFT' COMMENT '状态：DRAFT 草稿 / DONE 已完成',
+    `operator_id` BIGINT               DEFAULT NULL COMMENT '创建人',
+    `remark`      VARCHAR(255)         DEFAULT NULL COMMENT '备注',
+    `create_time` DATETIME             DEFAULT NULL,
+    `update_time` DATETIME             DEFAULT NULL,
+    PRIMARY KEY (`id`),
+    KEY `idx_stock_take_shop` (`shop_id`, `create_time`)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4 COMMENT ='库存盘点单';
+
+-- ----------------------------------------------------------------------
+-- stock_take_item 盘点明细（每条对应一个 SKU 的实盘数）
+-- ----------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `stock_take_item`
+(
+    `id`            BIGINT NOT NULL COMMENT '主键',
+    `take_id`       BIGINT NOT NULL COMMENT '盘点单',
+    `shop_id`       BIGINT NOT NULL COMMENT '店铺（冗余）',
+    `sku_id`        BIGINT NOT NULL COMMENT '规格',
+    `book_stock`    INT    NOT NULL DEFAULT 0 COMMENT '账面库存（提交时快照）',
+    `actual_stock`  INT    NOT NULL DEFAULT 0 COMMENT '实盘库存',
+    `diff_qty`      INT    NOT NULL DEFAULT 0 COMMENT '差异 = 实盘 - 账面',
+    `create_time`   DATETIME         DEFAULT NULL,
+    PRIMARY KEY (`id`),
+    KEY `idx_stock_take_item_take` (`take_id`)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4 COMMENT ='库存盘点明细';
 
 -- ----------------------------------------------------------------------
 -- cart_item 购物车（同一用户同一 SKU 一条；删除为物理删除）

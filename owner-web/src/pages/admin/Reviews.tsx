@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Button, Card, Empty, Popconfirm, Rate, Select, Space, Skeleton, Table, Tag } from 'antd';
+import { Button, Card, Popconfirm, Rate, Select, Space, Skeleton, Table, Tag } from 'antd';
 import { DeleteOutlined } from '@ant-design/icons';
 import { adminReviewApi } from '@/api/admin';
+import EmptyState from '@/components/EmptyState';
 import SafeImage from '@/components/SafeImage';
 import { isShopOwner, useAuthStore } from '@/store/auth';
 import { toast } from '@/utils/feedback';
@@ -78,7 +79,10 @@ export default function AdminReviews() {
         <Skeleton active />
       ) : rows.length === 0 ? (
         <Card>
-          <Empty description="还没有顾客评价" />
+          <EmptyState
+            title="还没有顾客评价"
+            description="顾客下单收货后可以对商品打分评价，评价会显示在这里和店面详情页。"
+          />
         </Card>
       ) : (
         <Table

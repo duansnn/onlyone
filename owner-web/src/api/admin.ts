@@ -20,16 +20,19 @@ import type {
   Refund,
   Review,
   Shop,
+  ShopAnalytics,
   ShopDashboard,
   ShopMember,
   SkuStock,
   StockLog,
+  StockTake,
 } from '@/types/mall';
 
 /* ---------------------------- 店铺资料 / 成员 ---------------------------- */
 
 export const shopApi = {
   dashboard: (shopId: string) => get<ShopDashboard>(`/shop/${shopId}/dashboard`),
+  analytics: (shopId: string) => get<ShopAnalytics>(`/shop/${shopId}/analytics`),
   profile: (shopId: string) => get<Shop>(`/shop/${shopId}/profile`),
   updateProfile: (shopId: string, data: Partial<Shop>) => put<Shop>(`/shop/${shopId}/profile`, data),
   members: (shopId: string) => get<ShopMember[]>(`/shop/${shopId}/members`),
@@ -71,6 +74,12 @@ export const productApi = {
     put<void>(`/shop/${shopId}/products/${productId}/status`, undefined, { status }),
   /** 逻辑删除：有未完结订单时后端会拒绝 */
   remove: (shopId: string, productId: string) => del<void>(`/shop/${shopId}/products/${productId}`),
+  /** 按当前筛选导出 xlsx。业务错误时后端仍返回 JSON，调用侧要按 blob 再判断。 */
+  export: (shopId: string, params?: { keyword?: string; status?: string; categoryId?: string }) =>
+    get<Blob>(`/shop/${shopId}/products/export`, params, {
+      responseType: 'blob',
+      timeout: 60000,
+    }),
 };
 
 /* ------------------------------- 库存 ------------------------------- */
@@ -82,6 +91,29 @@ export const stockApi = {
     post<void>(`/shop/${shopId}/stock/adjust`, data),
   logs: (shopId: string, params?: { skuId?: string } & PageQuery) =>
     get<Paged<StockLog>>(`/shop/${shopId}/stock/logs`, params),
+  warnings: (shopId: string) => get<SkuStock[]>(`/shop/${shopId}/stock/warnings`),
+  safeStock: (shopId: string, data: { skuId: string; safeStock?: number | null }) =>
+    post<void>(`/shop/${shopId}/stock/safe-stock`, data),
+  createTake: (shopId: string, data: { title: string; remark?: string }) =>
+    post<StockTake>(`/shop/${shopId}/stock/takes`, data),
+  submitTake: (
+    shopId: string,
+    takeId: string,
+    data: { items: { skuId: string; actualStock: number }[] },
+  ) => post<StockTake>(`/shop/${shopId}/stock/takes/${takeId}/submit`, data),
+  listTakes: (shopId: string) => get<StockTake[]>(`/shop/${shopId}/stock/takes`),
+  /** 导出库存 xlsx。业务错误时后端仍返回 JSON，调用侧要按 blob 再判断。 */
+  exportSkus: (shopId: string, params?: { keyword?: string; productId?: string }) =>
+    get<Blob>(`/shop/${shopId}/stock/skus/export`, params, {
+      responseType: 'blob',
+      timeout: 60000,
+    }),
+  /** 导出库存流水 xlsx。业务错误时后端仍返回 JSON，调用侧要按 blob 再判断。 */
+  exportLogs: (shopId: string, params?: { skuId?: string }) =>
+    get<Blob>(`/shop/${shopId}/stock/logs/export`, params, {
+      responseType: 'blob',
+      timeout: 60000,
+    }),
 };
 
 /* ------------------------------- 订单 ------------------------------- */

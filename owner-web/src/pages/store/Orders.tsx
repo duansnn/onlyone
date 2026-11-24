@@ -6,7 +6,6 @@ import {
   Descriptions,
   Divider,
   Drawer,
-  Empty,
   Form,
   Input,
   Modal,
@@ -24,6 +23,7 @@ import { useNavigate } from 'react-router-dom';
 import { orderApi, refundApi, reviewApi } from '@/api/mall';
 import SafeImage from '@/components/SafeImage';
 import StatusTag from '@/components/StatusTag';
+import EmptyState from '@/components/EmptyState';
 import { useAuthStore } from '@/store/auth';
 import { toast } from '@/utils/feedback';
 import {
@@ -175,11 +175,11 @@ export default function Orders() {
         <Skeleton active />
       ) : rows.length === 0 ? (
         <Card>
-          <Empty description="没有订单">
-            <Button type="primary" onClick={() => navigate('/products')}>
-              去逛逛
-            </Button>
-          </Empty>
+          <EmptyState
+            title="还没有订单"
+            description="下单后订单会显示在这里，进度随时可查。"
+            action={{ label: '去逛逛', onClick: () => navigate('/products') }}
+          />
         </Card>
       ) : (
         rows.map((order) => (

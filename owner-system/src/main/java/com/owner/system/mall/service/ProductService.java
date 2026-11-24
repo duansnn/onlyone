@@ -55,6 +55,7 @@ public class ProductService {
 
     private static final int SKU_ENABLED = 0;
     private static final int SKU_DISABLED = 1;
+    private static final int EXPORT_MAX = 5000;
 
     private final ProductMapper productMapper;
     private final ProductSkuMapper skuMapper;
@@ -110,6 +111,50 @@ public class ProductService {
                     product.getVersion(), product.getUpdateTime()));
         }
         return PageResult.of(rows, page.getTotal(), page.getCurrent(), page.getSize());
+    }
+
+    /** 导出商品 Excel：与 adminPage 同筛选，最多导出 5000 个商品 */
+    public byte[] exportShopProducts(Long shopId, String keyword, String status, Long categoryId) {
+        shopGuard.requireMember(shopId);
+        ProductStatus statusFilter = ProductStatus.of(status);
+        List<Product> products = productMapper.selectList(
+                Wrappers.<Product>lambdaQuery()
+                        .eq(Product::getShopId, shopId)
+                        .eq(statusFilter != null, Product::getStatus,
+                                statusFilter == null ? null : statusFilter.name())
+                        .eq(categoryId != null, Product::getCategoryId, categoryId)
+                        .and(StringUtils.isNotBlank(keyword), w -> w
+                                .like(Product::getName, keyword)
+                                .or().like(Product::getSellingPoint, keyword))
+                        .orderByAsc(Product::getSort)
+                        .orderByDesc(Product::getCreateTime)
+                        .last("LIMIT " + (EXPORT_MAX + 1)));
+        if (products.isEmpty()) {
+            throw new ServiceException(ResultCode.BUSINESS_ERROR, "当前筛选没有可导出的商品");
+        }
+        if (products.size() > EXPORT_MAX) {
+            throw new ServiceException(ResultCode.BUSINESS_ERROR,
+                    "一次最多导出 " + EXPORT_MAX + " 个商品，请缩小范围");
+        }
+
+        List<Long> productIds = products.stream().map(Product::getId).toList();
+        Map<Long, List<ProductSku>> skuMap = assembler.skusOf(productIds);
+        Map<Long, String> categoryNames = categoryNames(products.stream()
+                .map(Product::getCategoryId).distinct().toList());
+        Map<Long, String> statusLabels = new HashMap<>(products.size() * 2);
+        Map<Long, Long> totalStock = new HashMap<>(products.size() * 2);
+        Map<Long, Long> totalAvailable = new HashMap<>(products.size() * 2);
+        for (Product product : products) {
+            List<ProductSku> skus = skuMap.getOrDefault(product.getId(), List.of());
+            List<ProductSku> enabled = ProductAssembler.enabledSkus(skus);
+            long stock = enabled.stream()
+                    .mapToLong(sku -> sku.getStock() == null ? 0 : sku.getStock()).sum();
+            ProductStatus ps = ProductStatus.of(product.getStatus());
+            statusLabels.put(product.getId(), ps == null ? product.getStatus() : ps.getLabel());
+            totalStock.put(product.getId(), stock);
+            totalAvailable.put(product.getId(), ProductAssembler.totalAvailable(skus));
+        }
+        return ProductExcel.write(products, skuMap, categoryNames, statusLabels, totalStock, totalAvailable);
     }
 
     /** 后台商品详情（编辑用） */

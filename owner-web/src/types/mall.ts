@@ -409,10 +409,20 @@ export interface Shop {
 
 export interface ShopDashboard {
   todayOrderCount: number;
+  yesterdayOrderCount: number;
   todayPaidAmount: number;
+  yesterdayPaidAmount: number;
   pendingShipmentCount: number;
   pendingRefundCount: number;
   onSaleProductCount: number;
+}
+
+/* ---------------------------- 经营分析 ---------------------------- */
+
+export interface ShopAnalytics {
+  trend: { day: string; orderCount: number; paidAmount: number }[];
+  topProducts: { productName: string; quantity: number; amount: number }[];
+  categorySales: { categoryName: string; amount: number }[];
 }
 
 export interface ShopMember {
@@ -494,6 +504,7 @@ export interface SkuStock {
   stock: number;
   lockedStock: number;
   availableStock: number;
+  safeStock?: number;
   status: number;
   statusLabel: string;
 }
@@ -512,6 +523,25 @@ export interface StockLog {
   operatorId?: Id;
   remark?: string;
   createTime: string;
+}
+
+export interface StockTakeItem {
+  skuId: Id;
+  productName: string;
+  specName: string;
+  bookStock: number;
+  actualStock: number;
+  diffQty: number;
+}
+
+export interface StockTake {
+  id: Id;
+  title: string;
+  status: string;
+  statusLabel: string;
+  remark?: string;
+  createTime: string;
+  items: StockTakeItem[];
 }
 
 /* ----------------------------- 平台端 ----------------------------- */

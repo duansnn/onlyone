@@ -27,6 +27,51 @@
 
 ---
 
+## 0. 技术亮点（面试速览）
+
+> 这一节集中提炼本项目的核心设计点，面试时优先讲这些。
+
+### 亮点 1：防超卖 —— 带条件的原子 UPDATE，而不是「先查后改」
+
+下单扣库存没有用「先 `SELECT` 查库存 → 判断 → 再 `UPDATE`」这种会并发超卖的做法，
+而是用一条带 `WHERE stock - locked_stock >= qty` 的原子 SQL 完成锁定：
+
+```sql
+UPDATE product_sku
+   SET locked_stock = locked_stock + #{qty}
+ WHERE id = #{skuId}
+   AND del_flag = 0 AND status = 0
+   AND stock - locked_stock >= #{qty}   -- 可售库存不足时影响行数为 0，天然防超卖
+```
+
+可售库存统一口径 = `stock - locked_stock`。库存链路：下单只加 `locked_stock` → 确认收款扣 `stock` 并清锁定 → 退款回补。
+
+### 亮点 2：幂等下单 —— requestId + Redis + 数据库唯一键三层防重
+
+前端每次提交订单生成一个 `requestId`，后端用 Redis `setIfAbsent`（30 分钟）+ `order_info.idempotent_key` 唯一约束双重保障，用户连点/重试不会重复下单；失败时**释放幂等键**，避免后续重试被永久挡住。
+
+### 亮点 3：库存链路闭环 + 冒烟覆盖
+
+「锁库存 → 确认收款扣库存 → 退款回补」整条链路有 14 项冒烟脚本（`scripts/smoke-stock-chain.py`）覆盖，改库存逻辑后能快速回归。
+
+### 亮点 4：售后整单状态机 —— 原状态不污染退款表
+
+售后按整单处理，原订单状态记录在 `order_log.from_status`，退款表只存退款本身字段、不额外加字段记录「退款前是什么状态」，口径统一用 `RefundStatus.openCodes()`。
+
+### 亮点 5：逻辑删除留痕
+
+商品、SKU 采用逻辑删除（`del_flag`），误删可由 DBA 恢复；库存流水等历史数据通过 `selectByIdsIgnoreDeleted` 绕过逻辑删除条件，保证删掉商品后流水仍能显示当时的规格名。
+
+### 亮点 6：无在线支付的线下收款闭环（差异化定位）
+
+本系统不接第三方支付，走「顾客下单 → 待确认 → 店主确认收款（`markPaidOffline`，`channel=OFFLINE`）→ 扣库存 + 核销券」的线下收款闭环，天然规避了支付资质门槛，是一个完整、合法、能自圆其说的电商场景。
+
+### 亮点 7：库存盘点 + 预警 + Excel 导出
+
+`product_sku.safe_stock` 做库存预警；`stock_take`/`stock_take_item` 做盘点（录实存、自动算差异）；商品/库存/流水三处支持 Excel 导出（复用 Apache POI，零新增依赖）。
+
+---
+
 ## 1. 模块结构
 
 ```
